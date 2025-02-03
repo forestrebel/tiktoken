@@ -1,6 +1,6 @@
 # TikToken
 
-Secure token management and trading platform built on Ethereum.
+Video sharing social platform with shared upside for creators.
 
 ## Quick Start
 
