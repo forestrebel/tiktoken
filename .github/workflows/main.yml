@@ -1,0 +1,92 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      # Backend Tests
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install backend dependencies
+        run: |
+          pip install pipenv
+          cd backend
+          pipenv install --dev
+          
+      - name: Run backend tests
+        run: |
+          cd backend
+          pipenv run pytest
+          
+      # Frontend Tests
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+          
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm test -- --run
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Deploy to Render
+        uses: JorgeLNJunior/render-deploy@v1.4.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          service_id: ${{ secrets.RENDER_SERVICE_ID }}
+          api_key: ${{ secrets.RENDER_API_KEY }}
+          wait_deploy: true
+          
+      - name: Verify Backend Deployment
+        run: |
+          echo "Waiting for backend to stabilize..."
+          for i in {1..6}; do
+            if curl -f https://tiktoken-api.onrender.com/health; then
+              echo "Backend is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i failed, waiting 30s..."
+            sleep 30
+          done
+          echo "Backend health check failed after 3 minutes"
+          exit 1
+          
+      - name: Verify Frontend Deployment
+        run: |
+          echo "Waiting for frontend to stabilize..."
+          for i in {1..6}; do
+            if curl -f https://tiktoken-web.onrender.com/; then
+              echo "Frontend is accessible!"
+              exit 0
+            fi
+            echo "Attempt $i failed, waiting 30s..."
+            sleep 30
+          done
+          echo "Frontend check failed after 3 minutes"
+          exit 1 
