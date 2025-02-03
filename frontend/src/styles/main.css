@@ -1,0 +1,93 @@
+:root {
+  --color-bg: #ffffff;
+  --color-text: #1a1a1a;
+  --color-primary: #646cff;
+  --color-healthy: #4caf50;
+  --color-unhealthy: #f44336;
+  --color-checking: #ffc107;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.app-header h1 {
+  font-size: 2.5rem;
+  color: var(--color-primary);
+}
+
+.health-status {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.health-status h2 {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.status-item {
+  padding: 1rem;
+  border-radius: 8px;
+  background: #f5f5f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-item.healthy .status-value {
+  color: var(--color-healthy);
+}
+
+.status-item.unhealthy .status-value {
+  color: var(--color-unhealthy);
+}
+
+.status-item.checking .status-value {
+  color: var(--color-checking);
+}
+
+.status-label {
+  font-weight: 500;
+}
+
+.status-value {
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #242424;
+    --color-text: rgba(255, 255, 255, 0.87);
+  }
+
+  .status-item {
+    background: #2a2a2a;
+  }
+} 
