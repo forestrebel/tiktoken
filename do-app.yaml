@@ -1,0 +1,33 @@
+name: tiktoken-api
+region: sfo
+features:
+  - buildpack-stack=ubuntu-22
+services:
+  - name: tiktoken-api
+    github:
+      repo: jon-gauntlet/tiktoken
+      branch: main
+      deploy_on_push: true
+    source_dir: /backend
+    envs:
+      - key: PYTHON_VERSION
+        value: 3.12.4
+        scope: BUILD_TIME
+      - key: PIPENV_PYTHON
+        value: 3.12.4
+        scope: BUILD_TIME
+    build_command: pip install pipenv && pipenv install --python 3.12.4 --skip-lock
+    run_command: pipenv run uvicorn api.main:app --host 0.0.0.0 --port 8080
+    http_port: 8080
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+ingress:
+  rules:
+    - match:
+        path:
+          prefix: /api
+      component:
+        name: tiktoken-api 
