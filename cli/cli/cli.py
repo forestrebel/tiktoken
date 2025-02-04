@@ -13,9 +13,19 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from cli.cli.deploy import deploy_service, deploy_all, check_service
-from cli.cli.verify import verify_local_dev_setup
-from cli.cli.process import ProcessManager, JobStatus
+from cli.cli.verify import (
+    verify_local_dev_setup,
+    verify_content_flow,
+    verify_dependencies,
+    verify_pipeline,
+    verify_frontend_config,
+    verify_notification_chain,
+    verify_all,
+    verify_integration
+)
+from cli.process import ProcessManager, JobStatus
 from cli.cli.setup import setup_app
+from cli.cli.pipeline import run_pipeline_verification, run_deployment_verification, display_verification_results
 
 app = typer.Typer(
     help="TikToken development CLI - Container-First Development Tool",
@@ -590,22 +600,43 @@ def watch():
 # Deploy commands
 @deploy_app.command()
 def deploy(
-    service: Optional[str] = typer.Argument(None, help="Service to deploy"),
-    env: str = typer.Option("production", help="Environment to deploy to")
+    service: str = typer.Argument(..., help="Service to deploy"),
+    env: str = typer.Option("production", help="Environment to deploy to"),
+    skip_verify: bool = typer.Option(False, "--skip-verify", help="Skip pre-deployment verification (not recommended)")
 ):
-    """Deploy services."""
-    if service:
+    """Deploy services with pre-flight verification."""
+    if not skip_verify:
+        console.print("[bold]Running pre-deployment verification (max 30s)...[/]")
+        try:
+            # Run verifications with timeout
+            results = asyncio.run(asyncio.wait_for(run_deployment_verification(), timeout=30))
+            all_good = display_verification_results(results, "Pre-deployment Checks")
+            
+            if not all_good:
+                console.print("\n[red]Error:[/] Pre-deployment verification failed")
+                console.print("[yellow]Tip:[/] Fix the issues above or use --skip-verify to bypass (not recommended)")
+                raise typer.Exit(1)
+            
+            console.print("\n[green]✓[/] Pre-deployment verification passed")
+        except asyncio.TimeoutError:
+            console.print("\n[red]Error:[/] Pre-deployment verification timed out (30s)")
+            raise typer.Exit(1)
+        except Exception as e:
+            console.print(f"\n[red]Error:[/] Pre-deployment verification failed: {str(e)}")
+            raise typer.Exit(1)
+    else:
+        console.print("[yellow]Warning:[/] Skipping pre-deployment verification")
+    
+    # Proceed with deployment
+    try:
         success = asyncio.run(deploy_service(service, env))
         if not success:
             console.print(f"[red]✗[/] {service} deployment failed")
             raise typer.Exit(1)
         console.print(f"[green]✓[/] {service} deployed successfully")
-    else:
-        results = asyncio.run(deploy_all(env))
-        if not results:
-            console.print("[red]✗[/] Deployment failed")
-            raise typer.Exit(1)
-        console.print("[green]✓[/] All services deployed successfully")
+    except Exception as e:
+        console.print(f"[red]Error:[/] Deployment failed: {str(e)}")
+        raise typer.Exit(1)
 
 @deploy_app.command()
 def check(
@@ -623,98 +654,45 @@ def check(
         raise typer.Exit(1)
     console.print(f"[green]✓[/] {service} is healthy")
 
-@verify_app.command("content-flow")
-def verify_content_flow(
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output")
-):
+@verify_app.command()
+def content_flow():
     """Verify the content creation flow."""
-    try:
-        url = "http://localhost:8000"  # Core API URL
-        asyncio.run(verify_video_flow(url))
-    except Exception as e:
-        console.print(f"[red]Error:[/red] {str(e)}")
-        raise typer.Exit(1)
+    asyncio.run(verify_content_flow())
 
 @verify_app.command()
 def dependencies():
     """Verify service dependencies and startup order."""
-    console.print("[bold]Verifying service dependencies...[/]")
-    
-    # Get container status
-    status = get_container_status()
-    
-    # Define dependency order
-    dependency_order = [
-        ("supabase-db", []),
-        ("supabase-rest", ["supabase-db"]),
-        ("core", ["supabase-db", "supabase-rest"])
-    ]
-    
-    table = Table(title="Service Dependencies")
-    table.add_column("Service", style="cyan")
-    table.add_column("Dependencies", style="magenta")
-    table.add_column("Status", style="yellow")
-    
-    all_good = True
-    for service, deps in dependency_order:
-        service_status = status.get(service, False)
-        deps_status = all(status.get(dep, False) for dep in deps)
-        
-        status_text = "[green]✓[/]" if service_status and deps_status else "[red]✗[/]"
-        if not (service_status and deps_status):
-            all_good = False
-        
-        table.add_row(
-            service,
-            ", ".join(deps) if deps else "None",
-            status_text
-        )
-    
-    console.print(table)
-    
-    if not all_good:
-        console.print("\n[red]Error:[/] Some service dependencies are not satisfied")
-        console.print("Try running: t dev restart <service>")
-        raise typer.Exit(1)
+    asyncio.run(verify_dependencies())
 
 @verify_app.command()
 def local_dev():
     """Verify local development environment."""
-    console.print("[bold]Verifying local development setup...[/]")
-    
-    try:
-        # Run all verifications
-        results = asyncio.run(verify_local_dev_setup())
-        
-        # Display results
-        table = Table(title="Local Development Verification")
-        table.add_column("Component", style="cyan")
-        table.add_column("Status", style="magenta")
-        table.add_column("Details", style="yellow")
-        
-        all_good = True
-        for result in results:
-            table.add_row(
-                result["name"],
-                result["status"],
-                result["message"]
-            )
-            if result["status"] == "✗":
-                all_good = False
-        
-        console.print(table)
-        
-        if not all_good:
-            console.print("\n[red]Error:[/] Some verifications failed")
-            console.print("Run 't dev doctor' for more detailed diagnostics")
-            raise typer.Exit(1)
-        
-        console.print("\n[green]✓[/] Local development environment is properly configured!")
-        return 0
-        
-    except Exception as e:
-        console.print(f"\n[red]Error:[/] Verification failed: {str(e)}")
-        raise typer.Exit(1)
+    asyncio.run(verify_local_dev_setup())
+
+@verify_app.command()
+def pipeline():
+    """Validate Python version alignment, dependencies, and CI environment."""
+    asyncio.run(verify_pipeline())
+
+@verify_app.command()
+def frontend():
+    """Verify frontend configuration."""
+    asyncio.run(verify_frontend_config())
+
+@verify_app.command()
+def notify():
+    """Verify notification chain."""
+    asyncio.run(verify_notification_chain())
+
+@verify_app.command()
+def all():
+    """Run all verifications."""
+    asyncio.run(verify_all())
+
+@verify_app.command()
+def integration():
+    """Verify all service integrations."""
+    asyncio.run(verify_integration())
 
 def main():
     """CLI entry point."""

@@ -1,0 +1,59 @@
+name: Integration Tests
+
+on:
+  workflow_run:
+    workflows: ["Deploy to Production"]
+    types:
+      - completed
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv
+          pipenv install requests python-dotenv
+          
+      - name: Wait for deployments to stabilize
+        run: sleep 60  # Give services time to fully start
+          
+      - name: Run Core API tests
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          pipenv run python tests/integration/core_test.py
+          
+      - name: Run AI Service tests
+        run: |
+          pipenv run python tests/integration/ai_test.py
+          
+      - name: Run Frontend tests
+        run: |
+          pipenv run python tests/integration/frontend_test.py
+          
+      - name: Send Discord notification
+        if: always()
+        run: |
+          curl -H "Content-Type: application/json" \
+               -d "{\"content\": \"🧪 Integration Tests: ${{ job.status }}\n\n$(cat tests/integration/*.py | grep -A1 '✅' || echo 'No test results')\n\nSee details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
+               
+      - name: Trigger rollback on failure
+        if: failure()
+        run: |
+          curl -X POST \
+               -H "Authorization: Bearer ${{ secrets.DO_API_TOKEN }}" \
+               -H "Content-Type: application/json" \
+               "https://api.digitalocean.com/v2/apps/${{ secrets.DO_APP_ID }}/deployments/${{ github.event.workflow_run.head_sha }}/cancel" 

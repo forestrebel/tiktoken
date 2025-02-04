@@ -24,7 +24,7 @@ mypy = "*"
 pylint = "*"
 
 [requires]
-python_version = "3.12"
+python_version = "3.12.4"
 
 [scripts]
 t = "python -m cli.cli"
