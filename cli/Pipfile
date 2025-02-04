@@ -20,7 +20,7 @@ isort = ">=5.0.0"
 flake8 = ">=4.0.0"
 
 [requires]
-python_version = "3.8"
+python_version = "3.12.4"
 
 [scripts]
 t = "python -m cli.cli" 
