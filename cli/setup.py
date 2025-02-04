@@ -5,13 +5,12 @@ setup(
     name="tiktoken-cli",
     version="0.1.0",
     packages=find_packages(),
+    include_package_data=True,
     install_requires=[
         "typer",
         "rich",
-        "docker",
         "aiohttp",
-        "pytest",
-        "pytest-asyncio",
+        "asyncio",
     ],
     entry_points={
         "console_scripts": [

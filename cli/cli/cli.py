@@ -4,13 +4,14 @@ import subprocess
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
-
+import asyncio
+import aiohttp
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
-import asyncio
+
 from cli.deploy import (
     verify_requirements,
     push_container,
@@ -19,6 +20,8 @@ from cli.deploy import (
     verify_video_flow,
     DeploymentError
 )
+from cli.verify import verify_local_dev_setup
+from cli.process import ProcessManager, JobStatus
 
 app = typer.Typer(
     help="TikToken development CLI - Container-First Development Tool",
@@ -27,26 +30,79 @@ app = typer.Typer(
 verify_app = typer.Typer(help="Verify critical flows")
 app.add_typer(verify_app, name="verify")
 console = Console()
+process_manager = ProcessManager()
 
 # Service configuration
 SERVICES = {
-    "core_api": {
-        "health_endpoint": "http://localhost:8080/health",
+    "core": {
+        "health_endpoint": "http://localhost:8000/health",
         "required": True,
+        "timeout": 5,  # seconds
     },
-    "ai_service": {
-        "health_endpoint": "http://localhost:8081/health",
+    "supabase-db": {
+        "health_endpoint": "http://localhost:54322/health",
         "required": True,
+        "timeout": 5,
     },
-    "frontend": {
-        "health_endpoint": "http://localhost:3000/health",
+    "supabase-rest": {
+        "health_endpoint": "http://localhost:54321/health",
         "required": True,
-    },
-    "supabase": {
-        "health_endpoint": "http://localhost:54323/health",
-        "required": True,
+        "timeout": 5,
     },
 }
+
+async def check_service_health_async(service: str, session: aiohttp.ClientSession) -> bool:
+    """Check if a service is healthy asynchronously."""
+    if service not in SERVICES:
+        console.print(f"[yellow]Warning:[/] Unknown service {service}")
+        return False
+
+    config = SERVICES[service]
+    health_endpoint = config["health_endpoint"]
+    timeout = aiohttp.ClientTimeout(total=config["timeout"])
+
+    try:
+        async with session.get(health_endpoint, timeout=timeout) as response:
+            return response.status == 200
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        return False
+
+async def check_all_services_health() -> Dict[str, bool]:
+    """Check health of all services concurrently."""
+    async with aiohttp.ClientSession() as session:
+        tasks = {
+            service: check_service_health_async(service, session)
+            for service in SERVICES
+        }
+        results = await asyncio.gather(*tasks.values(), return_exceptions=True)
+        return dict(zip(tasks.keys(), [
+            isinstance(r, bool) and r for r in results
+        ]))
+
+def run_compose(cmd: str, capture_output: bool = False) -> subprocess.CompletedProcess:
+    """Run a docker compose command."""
+    full_cmd = f"docker compose {cmd}"
+    return subprocess.run(
+        full_cmd.split(),
+        check=False,
+        capture_output=capture_output,
+        text=True
+    )
+
+@app.command()
+def check(ctx: typer.Context):
+    """Check service health status."""
+    results = asyncio.run(check_all_services_health())
+    
+    # Fast fail if required services are unhealthy
+    unhealthy = [s for s, healthy in results.items() 
+                 if SERVICES[s]["required"] and not healthy]
+    
+    if unhealthy:
+        console.print(f"✗ Services unhealthy: {', '.join(unhealthy)}")
+        raise typer.Exit(1)
+    
+    console.print("✓ All required services are healthy")
 
 def show_header():
     """Show CLI header with usage information."""
@@ -60,12 +116,14 @@ Core Workflows:
    [green]t dev logs[/]    # View logs with service filtering
    [green]t dev shell[/]   # Enter container shell
    [green]t dev restart[/] # Quick restart of specific service
+   [green]t dev doctor[/]  # Run system diagnostics
 
 2. Validation Commands
-   [green]t check local[/]   # Verify all services healthy
-   [green]t check ports[/]   # Check for port conflicts
-   [green]t check config[/]  # Validate environment variables
-   [green]t status[/]        # Check container health
+   [green]t verify local-dev[/] # Verify local development setup
+   [green]t check local[/]      # Verify all services healthy
+   [green]t check ports[/]      # Check for port conflicts
+   [green]t check config[/]     # Validate environment variables
+   [green]t status[/]           # Check container health
 
 3. Testing Commands
    [green]t test integration[/] # Run cross-service tests
@@ -80,46 +138,6 @@ def find_project_root():
             return current
         current = current.parent
     raise typer.Exit("Could not find project root (docker-compose.yml)")
-
-def run_compose(cmd: str, capture_output: bool = False) -> subprocess.CompletedProcess:
-    """Run a docker compose command."""
-    full_cmd = f"docker compose {cmd}"
-    return subprocess.run(
-        full_cmd.split(),
-        check=False,
-        capture_output=capture_output,
-        text=True
-    )
-
-def check_service_health(service: str, retries: int = 30, delay: int = 2) -> bool:
-    """Check if a service is healthy by calling its health endpoint."""
-    if service not in SERVICES:
-        console.print(f"[yellow]Warning:[/] Unknown service {service}")
-        return False
-
-    health_endpoint = SERVICES[service]["health_endpoint"]
-    curl_cmd = f"curl -f {health_endpoint}"
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        task = progress.add_task(f"Checking {service} health...", total=None)
-        
-        for _ in range(retries):
-            result = subprocess.run(
-                curl_cmd.split(),
-                capture_output=True,
-                check=False
-            )
-            if result.returncode == 0:
-                progress.update(task, description=f"[green]✓[/] {service} is healthy")
-                return True
-            time.sleep(delay)
-        
-        progress.update(task, description=f"[red]✗[/] {service} health check failed")
-        return False
 
 def get_container_status() -> Dict[str, bool]:
     """Get the status of all containers."""
@@ -142,44 +160,49 @@ dev_app = typer.Typer(
 )
 app.add_typer(dev_app, name="dev")
 
+def compose_cmd(cmd: str) -> str:
+    """Generate docker compose command with proper project name."""
+    return f"docker compose -p tiktoken {cmd}"
+
 @dev_app.command()
 def up(
     detach: bool = typer.Option(True, "--detach/--no-detach", "-d/-D", help="Run in background"),
     build: bool = typer.Option(True, "--build/--no-build", "-b/-B", help="Build images before starting"),
 ):
     """Start development environment."""
-    console.print("[bold]Starting development environment...[/]")
-    
-    cmd = "up"
+    cmd_parts = ["up"]
     if detach:
-        cmd += " -d"
+        cmd_parts.append("-d")
     if build:
-        cmd += " --build"
-    
-    result = run_compose(cmd)
-    if result.returncode != 0:
-        raise typer.Exit(result.returncode)
-    
-    if detach:
-        console.print("\n[bold]Waiting for services to be healthy...[/]")
-        all_healthy = True
-        for service in SERVICES:
-            is_healthy = check_service_health(service)
-            if not is_healthy and SERVICES[service]["required"]:
-                all_healthy = False
+        cmd_parts.append("--build")
         
-        if not all_healthy:
-            console.print("\n[red]Error:[/] Some required services failed health checks")
-            raise typer.Exit(1)
-        
-        console.print("\n[green]✓[/] All services are running and healthy!")
+    cmd = compose_cmd(" ".join(cmd_parts))
+    
+    # Run in background and get job ID
+    job = process_manager.run_background(cmd)
+    console.print(f"[green]Starting development environment in background (Job ID: {job.id})[/green]")
+    console.print("Run [bold]t status[/bold] to check progress")
+    
+    # Update service status
+    for service in SERVICES:
+        process_manager.update_service_status(service, {
+            "status": "starting",
+            "healthy": False
+        })
 
 @dev_app.command()
 def down():
     """Stop development environment."""
-    console.print("[bold]Stopping development environment...[/]")
-    result = run_compose("down")
-    raise typer.Exit(result.returncode)
+    cmd = compose_cmd("down")
+    job = process_manager.run_background(cmd)
+    console.print(f"[yellow]Stopping development environment (Job ID: {job.id})[/yellow]")
+    
+    # Update service status
+    for service in SERVICES:
+        process_manager.update_service_status(service, {
+            "status": "stopped",
+            "healthy": False
+        })
 
 @dev_app.command()
 def logs(
@@ -187,21 +210,25 @@ def logs(
     follow: bool = typer.Option(False, "--follow", "-f", help="Follow log output"),
     tail: Optional[int] = typer.Option(None, "--tail", "-n", help="Number of lines to show"),
 ):
-    """View service logs."""
-    if service and service not in SERVICES:
-        console.print(f"[red]Error:[/] Unknown service {service}")
-        raise typer.Exit(1)
-    
-    cmd = "logs"
+    """Show logs from services."""
+    cmd_parts = ["logs"]
     if follow:
-        cmd += " -f"
+        cmd_parts.append("-f")
     if tail:
-        cmd += f" --tail={tail}"
+        cmd_parts.extend(["--tail", str(tail)])
     if service:
-        cmd += f" {service}"
+        cmd_parts.append(service)
+        
+    cmd = compose_cmd(" ".join(cmd_parts))
     
-    result = run_compose(cmd)
-    raise typer.Exit(result.returncode)
+    if follow:
+        # Run in background for following logs
+        job = process_manager.run_background(cmd)
+        console.print(f"[green]Following logs in background (Job ID: {job.id})[/green]")
+        console.print("Press Ctrl+C to stop following")
+    else:
+        # Run directly for one-time log view
+        subprocess.run(cmd, shell=True)
 
 @dev_app.command()
 def shell(
@@ -238,11 +265,65 @@ def restart(
         raise typer.Exit(result.returncode)
     
     # Check health after restart
-    if check_service_health(service):
+    if check_service_health_async(service):
         console.print(f"\n[green]✓[/] {service} restarted and healthy!")
     else:
         console.print(f"\n[red]Error:[/] {service} failed health check after restart")
         raise typer.Exit(1)
+
+@dev_app.command()
+def clean():
+    """Clean up development environment."""
+    # Stop all services
+    cmd = compose_cmd("down -v --remove-orphans")
+    job = process_manager.run_background(cmd)
+    console.print(f"[yellow]Cleaning up development environment (Job ID: {job.id})[/yellow]")
+    
+    # Clean up job cache
+    process_manager.cleanup_jobs()
+    console.print("[green]Cleaned up job cache[/green]")
+    
+    # Reset service status
+    for service in SERVICES:
+        process_manager.update_service_status(service, {
+            "status": "not initialized",
+            "healthy": False
+        })
+
+@dev_app.command()
+def doctor():
+    """Run diagnostics on development environment."""
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        # Check Docker
+        task = progress.add_task("Checking Docker...", total=None)
+        try:
+            subprocess.run(["docker", "info"], capture_output=True, check=True)
+            progress.update(task, description="[green]Docker is running[/green]")
+        except subprocess.CalledProcessError:
+            progress.update(task, description="[red]Docker is not running[/red]")
+            return
+            
+        # Check services
+        for service, config in SERVICES.items():
+            task = progress.add_task(f"Checking {service}...", total=None)
+            status = process_manager.get_service_status(service)
+            
+            if status.get("healthy", False):
+                progress.update(task, description=f"[green]{service} is healthy[/green]")
+            else:
+                progress.update(task, description=f"[red]{service} is not healthy[/red]")
+                
+        # Check background jobs
+        task = progress.add_task("Checking background jobs...", total=None)
+        active_jobs = [job for job in process_manager.list_jobs() if job.status == JobStatus.RUNNING]
+        if active_jobs:
+            progress.update(task, description=f"[yellow]{len(active_jobs)} active background jobs[/yellow]")
+        else:
+            progress.update(task, description="[green]No active background jobs[/green]")
 
 # Check commands
 check_app = typer.Typer(
@@ -251,162 +332,128 @@ check_app = typer.Typer(
 )
 app.add_typer(check_app, name="check")
 
-@check_app.command()
-def containers():
-    """Verify container builds and health endpoints."""
-    console.print("[bold]Verifying containers...[/]")
-    
-    # Check if containers are running
-    status = get_container_status()
-    all_running = True
-    
-    table = Table(title="Container Status")
-    table.add_column("Service")
-    table.add_column("Status")
-    table.add_column("Health")
-    
-    for service, running in status.items():
-        if not running:
-            if SERVICES[service]["required"]:
-                all_running = False
-            table.add_row(
-                service,
-                "[red]stopped[/]",
-                "[yellow]unknown[/]"
-            )
-            continue
+def verify_containers():
+    """Verify all containers are healthy."""
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Checking containers...", total=None)
+        unhealthy = []
         
-        # Check health endpoints
-        is_healthy = check_service_health(service, retries=1)
-        if not is_healthy and SERVICES[service]["required"]:
-            all_running = False
+        for service, config in SERVICES.items():
+            if not config["required"]:
+                continue
+            
+            try:
+                result = subprocess.run(
+                    ["curl", "-s", "-f", config["health_endpoint"]],
+                    capture_output=True
+                )
+                if result.returncode != 0:
+                    unhealthy.append(service)
+            except Exception:
+                unhealthy.append(service)
         
-        table.add_row(
-            service,
-            "[green]running[/]" if running else "[red]stopped[/]",
-            "[green]healthy[/]" if is_healthy else "[red]unhealthy[/]"
-        )
-    
-    console.print(table)
-    
-    if not all_running:
-        console.print("\n[red]Error:[/] Some required containers are not running or unhealthy")
-        raise typer.Exit(1)
-    
-    console.print("\n[green]✓[/] All containers are running and healthy!")
-    return 0
-
-@check_app.command()
-def cloud():
-    """Check cloud deployment status."""
-    console.print("[bold]Checking cloud deployment...[/]")
-    
-    try:
-        # Check DO app status
-        result = subprocess.run(
-            ["doctl", "apps", "get", os.getenv("DO_APP_ID", ""), "--format", "json"],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode != 0:
-            raise Exception("Failed to get app status")
-        
-        # Run deployment tests
-        console.print("\n[bold]Running deployment tests...[/]")
-        env = {
-            **os.environ,
-            "DEPLOYMENT_ENV": "cloud",
-            "CORE_API_URL": os.getenv("CLOUD_API_URL", ""),
-        }
-        
-        result = subprocess.run([
-            "pytest",
-            "tests/integration/test_core.py",
-            "-v",
-            "--asyncio-mode=auto"
-        ], env=env)
-        
-        if result.returncode != 0:
-            raise Exception("Deployment tests failed")
-        
-        console.print("\n[green]✓[/] Cloud deployment is healthy!")
-        return 0
-        
-    except Exception as e:
-        console.print(f"\n[red]Error:[/] Cloud check failed: {str(e)}")
-        raise typer.Exit(1)
+        if unhealthy:
+            progress.update(task, description=f"[red]✗[/] Services unhealthy: {', '.join(unhealthy)}")
+            raise typer.Exit(1)
+        else:
+            progress.update(task, description="[green]✓[/] All services are healthy")
 
 @check_app.command()
 def local():
     """Verify all services are healthy."""
-    return check_app.commands["containers"](standalone_mode=False)
+    verify_containers()
 
 @check_app.command()
 def ports():
     """Check for port conflicts."""
-    console.print("[bold]Checking for port conflicts...[/]")
+    required_ports = {
+        8000: "Core API",
+        54321: "Supabase REST",
+        54322: "Supabase DB"
+    }
     
-    # Get all used ports from docker-compose.yml
-    result = run_compose("config", capture_output=True)
-    if result.returncode != 0:
-        console.print("[red]Error:[/] Failed to read docker-compose configuration")
-        raise typer.Exit(1)
-    
-    # Check each port
-    all_clear = True
-    for line in result.stdout.splitlines():
-        if ":" in line and "ports:" in line:
-            try:
-                port = line.split(":")[1].strip().split(":")[0]
-                cmd = f"lsof -i :{port}"
-                result = subprocess.run(cmd.split(), capture_output=True)
-                
-                if result.returncode == 0:
-                    console.print(f"[red]✗[/] Port {port} is in use")
-                    all_clear = False
-                else:
-                    console.print(f"[green]✓[/] Port {port} is available")
-            except:
-                continue
-    
-    if not all_clear:
-        console.print("\n[red]Error:[/] Some ports are already in use")
-        raise typer.Exit(1)
-    
-    console.print("\n[green]✓[/] All ports are available!")
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Checking ports...", total=None)
+        conflicts = []
+        
+        for port, service in required_ports.items():
+            result = subprocess.run(
+                ["lsof", "-i", f":{port}"],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0:
+                conflicts.append((port, service))
+        
+        if conflicts:
+            progress.update(task, description="[red]✗[/] Port conflicts found")
+            table = Table(title="Port Conflicts")
+            table.add_column("Port", style="cyan")
+            table.add_column("Service", style="magenta")
+            table.add_column("Current Usage", style="red")
+            
+            for port, service in conflicts:
+                result = subprocess.run(
+                    ["lsof", "-i", f":{port}"],
+                    capture_output=True,
+                    text=True
+                )
+                usage = result.stdout.split("\n")[1].split()[0]
+                table.add_row(str(port), service, usage)
+            
+            console.print(table)
+            raise typer.Exit(1)
+        else:
+            progress.update(task, description="[green]✓[/] All required ports are available")
 
 @check_app.command()
 def config():
-    """Validate environment variables."""
-    console.print("[bold]Validating environment configuration...[/]")
-    
-    # Required environment variables
+    """Validate environment configuration."""
     required_vars = {
-        "NODE_ENV": "Development environment",
-        "SUPABASE_KEY": "Supabase anonymous key",
+        "SUPABASE_KEY": "Database access key",
+        "NODE_ENV": "Node environment (development/production)"
     }
     
-    # Check each variable
-    all_set = True
-    for var, description in required_vars.items():
-        if var in os.environ:
-            console.print(f"[green]✓[/] {description} ({var})")
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Checking environment...", total=None)
+        missing = []
+        
+        for var, description in required_vars.items():
+            if var not in os.environ:
+                missing.append((var, description))
+        
+        if missing:
+            progress.update(task, description="[red]✗[/] Missing environment variables")
+            table = Table(title="Missing Environment Variables")
+            table.add_column("Variable", style="cyan")
+            table.add_column("Description", style="magenta")
+            
+            for var, description in missing:
+                table.add_row(var, description)
+            
+            console.print(table)
+            console.print("\nTip: Create a .env file in the project root with these variables.")
+            raise typer.Exit(1)
         else:
-            console.print(f"[red]✗[/] {description} ({var}) not set")
-            all_set = False
-    
-    if not all_set:
-        console.print("\n[red]Error:[/] Some required environment variables are not set")
-        raise typer.Exit(1)
-    
-    console.print("\n[green]✓[/] All required environment variables are set!")
+            progress.update(task, description="[green]✓[/] All required environment variables are set")
 
 # Status command
 @app.command()
 def status():
-    """Show environment status."""
-    console.print("[bold]Environment Status[/]")
-    return check_app.commands["containers"](standalone_mode=False)
+    """Show status of all services and background jobs."""
+    process_manager.show_status()
 
 # Test commands
 test_app = typer.Typer(
@@ -416,34 +463,108 @@ test_app = typer.Typer(
 app.add_typer(test_app, name="test")
 
 @test_app.command()
-def integration():
+def integration(
+    cloud: bool = typer.Option(False, "--cloud", "-c", help="Run cloud integration tests"),
+    local: bool = typer.Option(True, "--local/--no-local", "-l/-L", help="Run local integration tests"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
+):
     """Run integration tests."""
     console.print("[bold]Running integration tests...[/]")
     
-    # First check if all containers are healthy
-    try:
-        check_app.commands["containers"](standalone_mode=False)
-    except typer.Exit as e:
-        if e.exit_code != 0:
-            console.print("[red]Error:[/] Cannot run integration tests - containers not healthy")
-            raise
+    if local:
+        # First check if all containers are healthy
+        try:
+            verify_containers()
+        except typer.Exit as e:
+            if e.exit_code != 0:
+                console.print("[red]Error:[/] Cannot run local integration tests - containers not healthy")
+                raise
+        
+        # Run local integration tests
+        console.print("\n[bold]Running local integration tests...[/]")
+        local_cmd = [
+            "pytest",
+            "tests/integration/test_critical_paths.py",
+            "-v",
+            "--asyncio-mode=auto",
+        ]
+        if verbose:
+            local_cmd.append("-s")
+        
+        result = subprocess.run(local_cmd)
+        if result.returncode != 0:
+            console.print("\n[red]Error:[/] Local integration tests failed")
+            if not cloud:
+                raise typer.Exit(result.returncode)
     
-    # Run pytest with integration tests
-    cmd = [
-        "pytest",
-        "tests/integration",
-        "-v",
-        "--asyncio-mode=auto",
-        "--capture=no",
-    ]
-    
-    result = subprocess.run(cmd)
-    if result.returncode != 0:
-        console.print("\n[red]Error:[/] Integration tests failed")
-        raise typer.Exit(result.returncode)
+    if cloud:
+        # Check required environment variables
+        required_vars = [
+            "CLOUD_API_URL",
+            "FRONTEND_URL",
+            "AI_SERVICE_URL",
+            "SUPABASE_URL",
+            "SUPABASE_KEY",
+            "TEST_USER_EMAIL",
+            "TEST_USER_PASSWORD"
+        ]
+        
+        missing = [var for var in required_vars if not os.getenv(var)]
+        if missing:
+            console.print(f"[red]Error:[/] Missing required environment variables: {', '.join(missing)}")
+            raise typer.Exit(1)
+        
+        # Run cloud integration tests
+        console.print("\n[bold]Running cloud integration tests...[/]")
+        cloud_cmd = [
+            "pytest",
+            "tests/integration/test_cloud_integration.py",
+            "-v",
+            "--asyncio-mode=auto",
+        ]
+        if verbose:
+            cloud_cmd.append("-s")
+        
+        result = subprocess.run(cloud_cmd)
+        if result.returncode != 0:
+            console.print("\n[red]Error:[/] Cloud integration tests failed")
+            raise typer.Exit(result.returncode)
     
     console.print("\n[green]✓[/] All integration tests passed!")
     return 0
+
+@test_app.command()
+def watch():
+    """Watch for changes and run tests automatically."""
+    try:
+        from watchfiles import run_process
+    except ImportError:
+        console.print("[red]Error:[/] watchfiles package not found")
+        console.print("Install with: pipenv install watchfiles")
+        raise typer.Exit(1)
+    
+    def run_tests():
+        """Run tests when files change."""
+        subprocess.run([
+            "pytest",
+            "tests/integration",
+            "-v",
+            "--asyncio-mode=auto",
+            "--no-cov"
+        ])
+    
+    console.print("[bold]Watching for changes...[/]")
+    console.print("Press Ctrl+C to stop")
+    
+    run_process(
+        ".",
+        target=run_tests,
+        watch_filter=lambda change, path: (
+            path.endswith(".py") and
+            "tests" in path or
+            "cli" in path
+        )
+    )
 
 # Deploy commands
 deploy_app = typer.Typer(
@@ -479,6 +600,87 @@ def verify_content_flow(
         asyncio.run(verify_video_flow(url))
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
+        raise typer.Exit(1)
+
+@verify_app.command()
+def dependencies():
+    """Verify service dependencies and startup order."""
+    console.print("[bold]Verifying service dependencies...[/]")
+    
+    # Get container status
+    status = get_container_status()
+    
+    # Define dependency order
+    dependency_order = [
+        ("supabase-db", []),
+        ("supabase-rest", ["supabase-db"]),
+        ("core", ["supabase-db", "supabase-rest"])
+    ]
+    
+    table = Table(title="Service Dependencies")
+    table.add_column("Service", style="cyan")
+    table.add_column("Dependencies", style="magenta")
+    table.add_column("Status", style="yellow")
+    
+    all_good = True
+    for service, deps in dependency_order:
+        service_status = status.get(service, False)
+        deps_status = all(status.get(dep, False) for dep in deps)
+        
+        status_text = "[green]✓[/]" if service_status and deps_status else "[red]✗[/]"
+        if not (service_status and deps_status):
+            all_good = False
+        
+        table.add_row(
+            service,
+            ", ".join(deps) if deps else "None",
+            status_text
+        )
+    
+    console.print(table)
+    
+    if not all_good:
+        console.print("\n[red]Error:[/] Some service dependencies are not satisfied")
+        console.print("Try running: t dev restart <service>")
+        raise typer.Exit(1)
+
+@verify_app.command()
+def local_dev():
+    """Verify local development environment."""
+    console.print("[bold]Verifying local development setup...[/]")
+    
+    try:
+        # Run all verifications
+        results = asyncio.run(verify_local_dev_setup())
+        
+        # Display results
+        table = Table(title="Local Development Verification")
+        table.add_column("Component", style="cyan")
+        table.add_column("Status", style="magenta")
+        table.add_column("Details", style="yellow")
+        
+        all_good = True
+        for result in results:
+            table.add_row(
+                result["name"],
+                result["status"],
+                result["message"]
+            )
+            if result["status"] == "✗":
+                all_good = False
+        
+        console.print(table)
+        
+        if not all_good:
+            console.print("\n[red]Error:[/] Some verifications failed")
+            console.print("Run 't dev doctor' for more detailed diagnostics")
+            raise typer.Exit(1)
+        
+        console.print("\n[green]✓[/] Local development environment is properly configured!")
+        return 0
+        
+    except Exception as e:
+        console.print(f"\n[red]Error:[/] Verification failed: {str(e)}")
         raise typer.Exit(1)
 
 def main():
