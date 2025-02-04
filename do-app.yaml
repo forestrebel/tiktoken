@@ -2,7 +2,7 @@ name: tiktoken-api
 region: sfo
 services:
   - name: api
-    dockerfile_path: Dockerfile
+    dockerfile_path: backend/Dockerfile
     source_dir: backend
     github:
       repo: jon-gauntlet/tiktoken
