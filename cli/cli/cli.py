@@ -576,22 +576,54 @@ deploy_app = typer.Typer(
 )
 app.add_typer(deploy_app, name="deploy")
 
-@deploy_app.command("build")
-def deploy_build():
-    """Build and push container to registry."""
-    asyncio.run(push_container("core"))
+@deploy_app.command()
+def check(
+    service: str = typer.Argument(..., help="Service to check"),
+):
+    """Check service deployment status."""
+    async def _check():
+        async with aiohttp.ClientSession() as session:
+            result = await check_service_health_async(service, session)
+            if result:
+                console.print(f"[green]✓[/] {service} is healthy")
+            else:
+                console.print(f"[red]✗[/] {service} is not healthy")
+                raise typer.Exit(1)
+    
+    asyncio.run(_check())
 
-@deploy_app.command("services")
-def deploy_services():
-    """Deploy services to target environment."""
-    url = os.getenv("DEPLOY_URL", "http://localhost:8000")
-    asyncio.run(deploy_service("core", "latest", url))
+@deploy_app.command()
+def run(
+    service: str = typer.Argument(..., help="Service to deploy"),
+):
+    """Deploy a single service."""
+    async def _deploy():
+        async with aiohttp.ClientSession() as session:
+            result = await deploy_service(service, session)
+            if result:
+                console.print(f"[green]✓[/] {service} deployed successfully")
+            else:
+                console.print(f"[red]✗[/] {service} deployment failed")
+                raise typer.Exit(1)
+    
+    asyncio.run(_deploy())
 
-@deploy_app.command("verify")
-def deploy_verify():
-    """Verify deployment and critical flows."""
-    url = os.getenv("DEPLOY_URL", "http://localhost:8000")
-    asyncio.run(verify_deployment(url))
+@deploy_app.command()
+def all():
+    """Deploy all services in order."""
+    async def _deploy_all():
+        results = await deploy_all()
+        if not results:
+            console.print("[red]✗[/] Deployment failed")
+            raise typer.Exit(1)
+        
+        # Show results
+        console.print("\n[bold]Deployment Results:[/]")
+        for service, success in results.items():
+            status = "[green]✓[/]" if success else "[red]✗[/]"
+            console.print(f"{status} {service}")
+    
+    asyncio.run(_deploy_all())
 
 @verify_app.command("content-flow")
 def verify_content_flow(
