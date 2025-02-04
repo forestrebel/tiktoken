@@ -1,79 +1,171 @@
-name: Minimal Deploy Pipeline
+name: Deploy Services
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pipenv
-          pipenv install --dev
-          
-      - name: Run Critical Tests
-        run: |
-          pipenv run pytest cli/test_critical.py -v
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+env:
+  REGISTRY: ghcr.io
+  CORE_IMAGE: tiktoken-core
+  FRONTEND_IMAGE: tiktoken-frontend
+  AI_IMAGE: tiktoken-ai
+  APP_ID: a4a28891-02eb-41bc-8b1c-52d1a5d40efe
 
+jobs:
   deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          python-version: '3.11'
-          
-      - name: Install CLI
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Core API
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/forestrebel/${{ env.CORE_IMAGE }}:latest
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/forestrebel/${{ env.FRONTEND_IMAGE }}:latest
+          build-args: |
+            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_KEY=${{ secrets.VITE_SUPABASE_KEY }}
+            VITE_API_URL=https://tiktoken-api-huipe.ondigitalocean.app
+
+      - name: Build and push AI Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ai
+          file: ./ai/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/forestrebel/${{ env.AI_IMAGE }}:latest
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Update DO App Platform
         run: |
-          python -m pip install --upgrade pip
-          pip install pipenv
-          pipenv install --dev
-      
-      - name: Deploy Supabase
-        run: pipenv run t deploy supabase
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-      
-      - name: Deploy Core API
-        run: pipenv run t deploy do-api
-        env:
-          DO_API_URL: ${{ secrets.DO_API_URL }}
-          DO_API_TOKEN: ${{ secrets.DO_API_TOKEN }}
-      
-      - name: Deploy Frontend
-        run: pipenv run t deploy vercel
-        env:
-          VERCEL_URL: ${{ secrets.VERCEL_URL }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      
-      - name: Verify Deployments
+          cat > .do/app.yaml << EOL
+          name: tiktoken-api
+          region: sfo
+          services:
+          - name: core
+            image:
+              registry_type: DOCKER_HUB
+              repository: forestrebel/${{ env.CORE_IMAGE }}
+              tag: latest
+              registry: ${{ env.REGISTRY }}
+            image_auth:
+              username: forestrebel
+              token: \${GITHUB_TOKEN}
+            instance_count: 1
+            instance_size_slug: basic-xxs
+            http_port: 8000
+            health_check:
+              http_path: /health
+              initial_delay_seconds: 30
+              success_threshold: 1
+            routes:
+            - path: /
+            envs:
+            - key: SUPABASE_URL
+              scope: RUN_TIME
+              value: \${SUPABASE_URL}
+            - key: SUPABASE_KEY
+              scope: RUN_TIME
+              value: \${SUPABASE_KEY}
+            - key: JWT_SECRET
+              scope: RUN_TIME
+              value: \${JWT_SECRET}
+            - key: CORS_ORIGINS
+              scope: RUN_TIME
+              value: \${CORS_ORIGINS}
+          - name: ai
+            image:
+              registry_type: DOCKER_HUB
+              repository: forestrebel/${{ env.AI_IMAGE }}
+              tag: latest
+              registry: ${{ env.REGISTRY }}
+            image_auth:
+              username: forestrebel
+              token: \${GITHUB_TOKEN}
+            instance_count: 1
+            instance_size_slug: basic-xxs
+            http_port: 8000
+            health_check:
+              http_path: /health
+              initial_delay_seconds: 30
+              success_threshold: 1
+            routes:
+            - path: /ai
+          EOL
+
+          doctl apps update ${{ env.APP_ID }} --spec .do/app.yaml
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./frontend
+
+      - name: Verify deployments
         run: |
-          pipenv run t check supabase
-          pipenv run t check do-api
-          pipenv run t check vercel
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          DO_API_URL: ${{ secrets.DO_API_URL }}
-          DO_API_TOKEN: ${{ secrets.DO_API_TOKEN }}
-          VERCEL_URL: ${{ secrets.VERCEL_URL }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }} 
+          # Wait for deployments to stabilize
+          sleep 45
+
+          # Check Core API health
+          core_response=$(curl -s https://tiktoken-api-huipe.ondigitalocean.app/health)
+          core_expected='{"status":"healthy","service":"core-api"}'
+          if [ "$core_response" != "$core_expected" ]; then
+            echo "Core API health check failed. Got: $core_response, Expected: $core_expected"
+            exit 1
+          fi
+          echo "Core API health check passed"
+
+          # Check AI Service health
+          ai_response=$(curl -s https://tiktoken-api-huipe.ondigitalocean.app/ai/health)
+          ai_expected='{"status":"healthy","service":"ai-service"}'
+          if [ "$ai_response" != "$ai_expected" ]; then
+            echo "AI Service health check failed. Got: $ai_response, Expected: $ai_expected"
+            exit 1
+          fi
+          echo "AI Service health check passed"
+
+          # Check Frontend is accessible
+          frontend_response=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.VERCEL_DEPLOYMENT_URL }})
+          if [ "$frontend_response" != "200" ]; then
+            echo "Frontend health check failed. HTTP Status: $frontend_response"
+            exit 1
+          fi
+          echo "Frontend health check passed"
+
+          # Verify Core API connection from Frontend
+          api_check=$(curl -s ${{ secrets.VERCEL_DEPLOYMENT_URL }}/api/health)
+          if [ -z "$api_check" ]; then
+            echo "Frontend to Core API connection check failed"
+            exit 1
+          fi
+          echo "Frontend to Core API connection check passed" 
