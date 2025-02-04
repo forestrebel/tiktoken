@@ -5,11 +5,16 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
+# Install pipenv
+RUN pip install pipenv
+
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Copy dependency files first for better caching
+COPY Pipfile Pipfile.lock ./
+
+# Install dependencies
+RUN pipenv install --deploy --system
 
 # Copy application code
 COPY . .
