@@ -2,19 +2,26 @@ FROM node:20-slim
 
 WORKDIR /app
 
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Copy package files
+COPY package*.json ./
+
 # Install dependencies
-COPY frontend/package*.json ./
 RUN npm ci
 
-# Copy application code
-COPY frontend/ .
+# Copy source code
+COPY . .
 
-# Build the application
+# Build the app
 RUN npm run build
 
-# Health check endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+# Install serve to run the built app
+RUN npm install -g serve
 
+# Expose port
 EXPOSE 3000
-CMD ["npm", "start"] 
+
+# Start the service
+CMD ["serve", "-s", "build", "-l", "3000"] 

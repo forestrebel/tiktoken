@@ -1,0 +1,17 @@
+{
+  "name": "tiktoken-core",
+  "version": "1.0.0",
+  "description": "TikToken Core Service",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@supabase/supabase-js": "^2.39.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+} 
