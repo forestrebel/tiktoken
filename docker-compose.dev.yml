@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  core_api:
+    volumes:
+      - ./backend:/app
+      - /app/.local/share/virtualenvs  # Don't mount Pipenv virtualenv
+    command: pipenv run uvicorn api.main:app --host 0.0.0.0 --port 8080 --reload
+  
+  ai_service_mock:
+    volumes:
+      - ./ai:/app
+      - /app/.local/share/virtualenvs  # Don't mount Pipenv virtualenv
+    command: pipenv run uvicorn main:app --host 0.0.0.0 --port 8081 --reload
+  
+  frontend_dev:
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Don't mount node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev 
