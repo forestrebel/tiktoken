@@ -2,8 +2,17 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import random
 import time
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Tiktoken AI Mock Service")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class TokenRequest(BaseModel):
     text: str
@@ -14,11 +23,7 @@ class TokenResponse(BaseModel):
 
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "service": "tiktoken-ai-mock",
-        "version": "0.1.0"
-    }
+    return {"status": "healthy", "service": "ai-service"}
 
 @app.post("/api/tokenize", response_model=TokenResponse)
 async def tokenize_text(request: TokenRequest):

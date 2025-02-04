@@ -1,0 +1,33 @@
+name: tiktoken-api
+region: sfo
+services:
+- name: core
+  image:
+    registry_type: DOCKER_HUB
+    repository: forestrebel/tiktoken-core
+    tag: latest
+    registry: ghcr.io
+  image_auth:
+    username: forestrebel
+    token: ${GITHUB_TOKEN}
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  http_port: 8000
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 30
+  routes:
+  - path: /
+  envs:
+  - key: SUPABASE_URL
+    scope: RUN_TIME
+    value: ${SUPABASE_URL}
+  - key: SUPABASE_KEY
+    scope: RUN_TIME
+    value: ${SUPABASE_KEY}
+  - key: JWT_SECRET
+    scope: RUN_TIME
+    value: ${JWT_SECRET}
+  - key: CORS_ORIGINS
+    scope: RUN_TIME
+    value: ${CORS_ORIGINS}
