@@ -5,7 +5,7 @@
         },
         "pipfile-spec": 6,
         "requires": {
-            "python_version": "3.12.4"
+            "python_version": "3.10"
         },
         "sources": [
             {
@@ -103,6 +103,7 @@
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***"
             ],
+            "index": "pypi",
             "markers": "python_version >= '3.9'",
             "version": "==3.11.11"
         },
@@ -113,6 +114,14 @@
             ],
             "markers": "python_version >= '3.9'",
             "version": "==1.3.2"
+        },
+        "anyio": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.9'",
+            "version": "==4.8.0"
         },
         "attrs": {
             "hashes": [
@@ -130,104 +139,6 @@
             "markers": "python_version >= '3.6'",
             "version": "==2025.1.31"
         },
-        "charset-normalizer": {
-            "hashes": [
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***"
-            ],
-            "markers": "python_version >= '3.7'",
-            "version": "==3.4.1"
-        },
         "click": {
             "hashes": [
                 "sha256:***REMOVED***",
@@ -236,13 +147,29 @@
             "markers": "python_version >= '3.7'",
             "version": "==8.1.8"
         },
-        "docker": {
+        "dateparser": {
             "hashes": [
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***"
             ],
-            "markers": "python_version >= '3.8'",
-            "version": "==7.1.0"
+            "markers": "python_version >= '3.7'",
+            "version": "==1.2.0"
+        },
+        "delegator.py": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "version": "==0.1.1"
+        },
+        "doctl": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "index": "pypi",
+            "markers": "python_full_version >= '3.6.0'",
+            "version": "==0.2.3"
         },
         "frozenlist": {
             "hashes": [
@@ -342,6 +269,39 @@
             "markers": "python_version >= '3.8'",
             "version": "==1.5.0"
         },
+        "h11": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==0.14.0"
+        },
+        "httpcore": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==1.0.7"
+        },
+        "httpx": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.8'",
+            "version": "==0.28.1"
+        },
+        "humanize": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.9'",
+            "version": "==4.11.0"
+        },
         "idna": {
             "hashes": [
                 "sha256:***REMOVED***",
@@ -365,6 +325,13 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==3.0.0"
+        },
+        "maya": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "version": "==0.6.1"
         },
         "mdurl": {
             "hashes": [
@@ -480,6 +447,102 @@
             "markers": "python_version >= '3.8'",
             "version": "==24.2"
         },
+        "pendulum": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==3.0.0"
+        },
+        "pexpect": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "version": "==4.9.0"
+        },
         "pluggy": {
             "hashes": [
                 "sha256:***REMOVED***",
@@ -576,6 +639,13 @@
             "markers": "python_version >= '3.9'",
             "version": "==0.2.1"
         },
+        "ptyprocess": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "version": "==0.7.0"
+        },
         "pygments": {
             "hashes": [
                 "sha256:***REMOVED***",
@@ -589,6 +659,7 @@
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***"
             ],
+            "index": "pypi",
             "markers": "python_version >= '3.8'",
             "version": "==8.3.4"
         },
@@ -597,24 +668,151 @@
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***"
             ],
+            "index": "pypi",
             "markers": "python_version >= '3.9'",
             "version": "==0.25.3"
         },
-        "requests": {
+        "python-dateutil": {
             "hashes": [
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***"
             ],
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "version": "==2.9.0.post0"
+        },
+        "python-dotenv": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "index": "pypi",
             "markers": "python_version >= '3.8'",
-            "version": "==2.32.3"
+            "version": "==1.0.1"
+        },
+        "pytz": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "version": "==2025.1"
+        },
+        "regex": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==2024.11.6"
         },
         "rich": {
             "hashes": [
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***"
             ],
+            "index": "pypi",
             "markers": "python_full_version >= '3.8.0'",
             "version": "==13.9.4"
+        },
+        "setuptools": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.9'",
+            "version": "==75.8.0"
         },
         "shellingham": {
             "hashes": [
@@ -624,15 +822,100 @@
             "markers": "python_version >= '3.7'",
             "version": "==1.5.4"
         },
+        "six": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "version": "==1.17.0"
+        },
+        "snaptime": {
+            "hashes": [
+                "sha256:***REMOVED***"
+            ],
+            "version": "==0.2.4"
+        },
+        "sniffio": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==1.3.1"
+        },
         "tiktoken-cli": {
             "editable": true,
-            "file": "cli"
+            "file": "."
+        },
+        "time-machine": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "implementation_name != 'pypy'",
+            "version": "==2.16.0"
         },
         "typer": {
             "hashes": [
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***"
             ],
+            "index": "pypi",
             "markers": "python_version >= '3.7'",
             "version": "==0.15.1"
         },
@@ -644,13 +927,21 @@
             "markers": "python_version >= '3.8'",
             "version": "==4.12.2"
         },
-        "urllib3": {
+        "tzdata": {
             "hashes": [
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***"
             ],
-            "markers": "python_version >= '3.9'",
-            "version": "==2.3.0"
+            "markers": "python_version >= '2'",
+            "version": "==2025.1"
+        },
+        "tzlocal": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==5.2"
         },
         "yarl": {
             "hashes": [
@@ -741,5 +1032,178 @@
             "version": "==1.18.3"
         }
     },
-    "develop": {}
+    "develop": {
+        "astroid": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_full_version >= '3.9.0'",
+            "version": "==3.3.8"
+        },
+        "black": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.9'",
+            "version": "==25.1.0"
+        },
+        "click": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==8.1.8"
+        },
+        "dill": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.11'",
+            "version": "==0.3.9"
+        },
+        "isort": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "index": "pypi",
+            "markers": "python_full_version >= '3.9.0'",
+            "version": "==6.0.0"
+        },
+        "mccabe": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==0.7.0"
+        },
+        "mypy": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.8'",
+            "version": "==1.14.1"
+        },
+        "mypy-extensions": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.5'",
+            "version": "==1.0.0"
+        },
+        "packaging": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==24.2"
+        },
+        "pathspec": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==0.12.1"
+        },
+        "platformdirs": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==4.3.6"
+        },
+        "pylint": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "index": "pypi",
+            "markers": "python_full_version >= '3.9.0'",
+            "version": "==3.3.4"
+        },
+        "tomlkit": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==0.13.2"
+        },
+        "typing-extensions": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==4.12.2"
+        }
+    }
 }

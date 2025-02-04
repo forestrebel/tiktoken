@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tiktoken-cli"
+version = "0.1.0"
+description = "TikToken development CLI - Container-First Development Tool"
+requires-python = ">=3.8"
+dependencies = [
+    "typer",
+    "rich",
+    "aiohttp",
+    "python-dotenv"
+]
+
+[project.scripts]
+t = "cli.cli:app" 

@@ -4,10 +4,14 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-tiktoken-cli = {editable = true, path = "."}
 typer = "*"
 rich = "*"
 pytest-asyncio = "*"
+httpx = "*"
+pytest = "*"
+pytest-docker = "*"
+docker = "*"
+tiktoken-cli = {file = ".", editable = true}
 
 [dev-packages]
 pytest = "*"

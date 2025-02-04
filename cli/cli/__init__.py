@@ -4,4 +4,6 @@ __version__ = "0.1.0"
 
 """CLI package."""
 
-__all__ = [] 
+__all__ = []
+
+"""TikToken CLI package.""" 

@@ -1,15 +1,12 @@
-"""Pytest configuration for integration tests."""
+"""Test configuration and fixtures."""
 import os
 import pytest
 import docker
-from typing import Generator
 
 @pytest.fixture(scope="session")
-def docker_client() -> Generator[docker.DockerClient, None, None]:
+def docker_client():
     """Create a Docker client."""
-    client = docker.from_env()
-    yield client
-    client.close()
+    return docker.from_env()
 
 @pytest.fixture(scope="session")
 def check_containers(docker_client: docker.DockerClient):
@@ -35,13 +32,10 @@ def check_containers(docker_client: docker.DockerClient):
 
 @pytest.fixture(autouse=True)
 def setup_test_env(check_containers):
-    """Setup test environment before each test."""
-    # Set test environment variables
-    os.environ["NODE_ENV"] = "test"
-    os.environ["TESTING"] = "true"
-    os.environ["DEPLOYMENT_ENV"] = os.getenv("DEPLOYMENT_ENV", "local")
-    
-    yield
-    
-    # Cleanup after tests
-    os.environ.pop("TESTING", None) 
+    """Set up test environment."""
+    # Set environment variables for tests
+    os.environ.update({
+        "API_URL": "http://localhost:8000",
+        "STORAGE_URL": "http://localhost:9000",
+        "AUTH_URL": "http://localhost:8080"
+    }) 

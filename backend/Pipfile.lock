@@ -5,7 +5,7 @@
         },
         "pipfile-spec": 6,
         "requires": {
-            "python_version": "3.12.4"
+            "python_version": "3.12"
         },
         "sources": [
             {
@@ -32,14 +32,6 @@
             "markers": "python_version >= '3.9'",
             "version": "==4.8.0"
         },
-        "certifi": {
-            "hashes": [
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***"
-            ],
-            "markers": "python_version >= '3.6'",
-            "version": "==2025.1.31"
-        },
         "click": {
             "hashes": [
                 "sha256:***REMOVED***",
@@ -65,23 +57,6 @@
             "markers": "python_version >= '3.7'",
             "version": "==0.14.0"
         },
-        "httpcore": {
-            "hashes": [
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***"
-            ],
-            "markers": "python_version >= '3.8'",
-            "version": "==1.0.7"
-        },
-        "httpx": {
-            "hashes": [
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***"
-            ],
-            "index": "pypi",
-            "markers": "python_version >= '3.8'",
-            "version": "==0.28.1"
-        },
         "idna": {
             "hashes": [
                 "sha256:***REMOVED***",
@@ -95,9 +70,8 @@
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***"
             ],
-            "index": "pypi",
             "markers": "python_version >= '3.8'",
-            "version": "==2.6.1"
+            "version": "==2.10.6"
         },
         "pydantic-core": {
             "hashes": [
@@ -179,28 +153,31 @@
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***",
-                "sha256:***REMOVED***"
-            ],
-            "markers": "python_version >= '3.8'",
-            "version": "==2.16.2"
-        },
-        "pydantic-settings": {
-            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***",
                 "sha256:***REMOVED***",
                 "sha256:***REMOVED***"
             ],
-            "index": "pypi",
             "markers": "python_version >= '3.8'",
-            "version": "==2.1.0"
-        },
-        "python-dotenv": {
-            "hashes": [
-                "sha256:***REMOVED***",
-                "sha256:***REMOVED***"
-            ],
-            "index": "pypi",
-            "markers": "python_version >= '3.8'",
-            "version": "==1.0.1"
+            "version": "==2.27.2"
         },
         "sniffio": {
             "hashes": [
@@ -236,5 +213,48 @@
             "version": "==0.34.0"
         }
     },
-    "develop": {}
+    "develop": {
+        "iniconfig": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==2.0.0"
+        },
+        "packaging": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==24.2"
+        },
+        "pluggy": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==1.5.0"
+        },
+        "pytest": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.8'",
+            "version": "==8.3.4"
+        },
+        "pytest-asyncio": {
+            "hashes": [
+                "sha256:***REMOVED***",
+                "sha256:***REMOVED***"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.9'",
+            "version": "==0.25.3"
+        }
+    }
 }

@@ -1,22 +1,37 @@
 version: '3.8'
 
 services:
-  core_api:
+  core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
     volumes:
       - ./backend:/app
       - /app/.local/share/virtualenvs  # Don't mount Pipenv virtualenv
-    command: pipenv run uvicorn api.main:app --host 0.0.0.0 --port 8080 --reload
+    command: pipenv run uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
   
   ai_service_mock:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile.dev
     volumes:
       - ./ai:/app
       - /app/.local/share/virtualenvs  # Don't mount Pipenv virtualenv
     command: pipenv run uvicorn main:app --host 0.0.0.0 --port 8081 --reload
+    ports:
+      - "8081:8081"
   
   frontend_dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     volumes:
       - ./frontend:/app
       - /app/node_modules  # Don't mount node_modules
     environment:
       - NODE_ENV=development
+    ports:
+      - "3000:3000"
     command: npm run dev 

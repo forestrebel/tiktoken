@@ -12,40 +12,37 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from cli.deploy import (
-    verify_requirements,
-    push_container,
-    deploy_service,
-    verify_deployment,
-    verify_video_flow,
-    DeploymentError
-)
-from cli.verify import verify_local_dev_setup
-from cli.process import ProcessManager, JobStatus
+from cli.cli.deploy import deploy_service, deploy_all, check_service
+from cli.cli.verify import verify_local_dev_setup
+from cli.cli.process import ProcessManager, JobStatus
+from cli.cli.setup import setup_app
 
 app = typer.Typer(
     help="TikToken development CLI - Container-First Development Tool",
     no_args_is_help=True,
 )
 verify_app = typer.Typer(help="Verify critical flows")
+deploy_app = typer.Typer(help="Deployment commands")
 app.add_typer(verify_app, name="verify")
+app.add_typer(deploy_app, name="deploy")
+app.add_typer(setup_app, name="setup")
 console = Console()
 process_manager = ProcessManager()
 
 # Service configuration
 SERVICES = {
     "core": {
-        "health_endpoint": "http://localhost:8000/health",
+        "health_endpoint": "http://localhost:8000",
         "required": True,
         "timeout": 5,  # seconds
     },
     "supabase-db": {
-        "health_endpoint": "http://localhost:54322/health",
+        "health_endpoint": "http://localhost:54322",
         "required": True,
         "timeout": 5,
     },
     "supabase-rest": {
-        "health_endpoint": "http://localhost:54321/health",
+        "health_endpoint": "http://localhost:54321",
         "required": True,
         "timeout": 5,
     },
@@ -62,9 +59,19 @@ async def check_service_health_async(service: str, session: aiohttp.ClientSessio
     timeout = aiohttp.ClientTimeout(total=config["timeout"])
 
     try:
-        async with session.get(health_endpoint, timeout=timeout) as response:
-            return response.status == 200
-    except (aiohttp.ClientError, asyncio.TimeoutError):
+        if service == "supabase-db":
+            # Use pg_isready for database health check
+            result = subprocess.run(
+                ["docker", "compose", "exec", "-T", "supabase-db", "pg_isready", "-U", "postgres"],
+                capture_output=True,
+                text=True
+            )
+            return result.returncode == 0
+        else:
+            # Use HTTP health check for other services
+            async with session.get(f"{health_endpoint}/health", timeout=timeout) as response:
+                return response.status == 200
+    except (aiohttp.ClientError, asyncio.TimeoutError, subprocess.CalledProcessError):
         return False
 
 async def check_all_services_health() -> Dict[str, bool]:
@@ -347,12 +354,23 @@ def verify_containers():
                 continue
             
             try:
-                result = subprocess.run(
-                    ["curl", "-s", "-f", config["health_endpoint"]],
-                    capture_output=True
-                )
-                if result.returncode != 0:
-                    unhealthy.append(service)
+                if service == "supabase-db":
+                    # Use pg_isready for database health check
+                    result = subprocess.run(
+                        ["docker", "compose", "exec", "-T", "supabase-db", "pg_isready", "-U", "postgres"],
+                        capture_output=True,
+                        text=True
+                    )
+                    if result.returncode != 0:
+                        unhealthy.append(service)
+                else:
+                    # Use HTTP health check for other services
+                    result = subprocess.run(
+                        ["curl", "-s", "-f", f"{config['health_endpoint']}/health"],
+                        capture_output=True
+                    )
+                    if result.returncode != 0:
+                        unhealthy.append(service)
             except Exception:
                 unhealthy.append(service)
         
@@ -570,60 +588,40 @@ def watch():
     )
 
 # Deploy commands
-deploy_app = typer.Typer(
-    help="Deployment commands",
-    short_help="Deploy services",
-)
-app.add_typer(deploy_app, name="deploy")
+@deploy_app.command()
+def deploy(
+    service: Optional[str] = typer.Argument(None, help="Service to deploy"),
+    env: str = typer.Option("production", help="Environment to deploy to")
+):
+    """Deploy services."""
+    if service:
+        success = asyncio.run(deploy_service(service, env))
+        if not success:
+            console.print(f"[red]✗[/] {service} deployment failed")
+            raise typer.Exit(1)
+        console.print(f"[green]✓[/] {service} deployed successfully")
+    else:
+        results = asyncio.run(deploy_all(env))
+        if not results:
+            console.print("[red]✗[/] Deployment failed")
+            raise typer.Exit(1)
+        console.print("[green]✓[/] All services deployed successfully")
 
 @deploy_app.command()
 def check(
     service: str = typer.Argument(..., help="Service to check"),
+    env: str = typer.Option("production", help="Environment to check")
 ):
-    """Check service deployment status."""
+    """Check service health."""
     async def _check():
         async with aiohttp.ClientSession() as session:
-            result = await check_service_health_async(service, session)
-            if result:
-                console.print(f"[green]✓[/] {service} is healthy")
-            else:
-                console.print(f"[red]✗[/] {service} is not healthy")
-                raise typer.Exit(1)
-    
-    asyncio.run(_check())
-
-@deploy_app.command()
-def run(
-    service: str = typer.Argument(..., help="Service to deploy"),
-):
-    """Deploy a single service."""
-    async def _deploy():
-        async with aiohttp.ClientSession() as session:
-            result = await deploy_service(service, session)
-            if result:
-                console.print(f"[green]✓[/] {service} deployed successfully")
-            else:
-                console.print(f"[red]✗[/] {service} deployment failed")
-                raise typer.Exit(1)
-    
-    asyncio.run(_deploy())
-
-@deploy_app.command()
-def all():
-    """Deploy all services in order."""
-    async def _deploy_all():
-        results = await deploy_all()
-        if not results:
-            console.print("[red]✗[/] Deployment failed")
-            raise typer.Exit(1)
-        
-        # Show results
-        console.print("\n[bold]Deployment Results:[/]")
-        for service, success in results.items():
-            status = "[green]✓[/]" if success else "[red]✗[/]"
-            console.print(f"{status} {service}")
-    
-    asyncio.run(_deploy_all())
+            return await check_service(service, session)
+            
+    success = asyncio.run(_check())
+    if not success:
+        console.print(f"[red]✗[/] {service} is not healthy")
+        raise typer.Exit(1)
+    console.print(f"[green]✓[/] {service} is healthy")
 
 @verify_app.command("content-flow")
 def verify_content_flow(
