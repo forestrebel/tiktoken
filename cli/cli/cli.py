@@ -467,8 +467,9 @@ def integration(
     cloud: bool = typer.Option(False, "--cloud", "-c", help="Run cloud integration tests"),
     local: bool = typer.Option(True, "--local/--no-local", "-l/-L", help="Run local integration tests"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
+    failfast: bool = typer.Option(True, "--failfast/--no-failfast", "-f/-F", help="Stop on first failure"),
 ):
-    """Run integration tests."""
+    """Run integration tests for critical paths."""
     console.print("[bold]Running integration tests...[/]")
     
     if local:
@@ -484,12 +485,14 @@ def integration(
         console.print("\n[bold]Running local integration tests...[/]")
         local_cmd = [
             "pytest",
-            "tests/integration/test_critical_paths.py",
+            "cli/test_integration.py",
             "-v",
             "--asyncio-mode=auto",
         ]
         if verbose:
             local_cmd.append("-s")
+        if failfast:
+            local_cmd.append("-x")
         
         result = subprocess.run(local_cmd)
         if result.returncode != 0:
@@ -504,9 +507,7 @@ def integration(
             "FRONTEND_URL",
             "AI_SERVICE_URL",
             "SUPABASE_URL",
-            "SUPABASE_KEY",
-            "TEST_USER_EMAIL",
-            "TEST_USER_PASSWORD"
+            "SUPABASE_KEY"
         ]
         
         missing = [var for var in required_vars if not os.getenv(var)]
@@ -518,12 +519,14 @@ def integration(
         console.print("\n[bold]Running cloud integration tests...[/]")
         cloud_cmd = [
             "pytest",
-            "tests/integration/test_cloud_integration.py",
+            "cli/test_deployment.py",
             "-v",
             "--asyncio-mode=auto",
         ]
         if verbose:
             cloud_cmd.append("-s")
+        if failfast:
+            cloud_cmd.append("-x")
         
         result = subprocess.run(cloud_cmd)
         if result.returncode != 0:
