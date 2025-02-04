@@ -4,12 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-fastapi = "*"
-uvicorn = "*"
-pydantic = "==2.6.1"
-pydantic-settings = "==2.1.0"
+click = "*"
 python-dotenv = "*"
-httpx = "*"
+rich = "*"
+tiktoken-cli = {file = ".", editable = true}
+
+[dev-packages]
 
 [requires]
-python_version = "3.12.4"
+python_version = "3.10"

@@ -1,0 +1,30 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+click = "*"
+python-dotenv = "*"
+httpx = "*"
+typer = "*"
+fastapi = "*"
+uvicorn = "*"
+docker-compose = "*"
+aiohttp = "*"
+t = {editable = true, path = ".dev/cli"}
+
+[dev-packages]
+pytest = "*"
+black = "*"
+isort = "*"
+mypy = "*"
+
+[requires]
+python_version = "3.12"
+
+[scripts]
+t = "python -m cli.main"
+format = "black . && isort ."
+typecheck = "mypy ."
+test = "pytest"

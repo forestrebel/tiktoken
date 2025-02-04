@@ -18,6 +18,13 @@ services:
       - key: PORT
         value: "8080"
         scope: RUN_TIME
+      - key: AI_SERVICE_URL
+        value: "${AI_SERVICE_URL}"  # Will be set to AWS endpoint
+        scope: RUN_TIME
+      - key: CORS_ORIGINS
+        value: "${CORS_ORIGINS}"
+        scope: RUN_TIME
+
 ingress:
   rules:
     - match:
