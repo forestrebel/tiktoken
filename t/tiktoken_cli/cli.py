@@ -13,8 +13,19 @@ from typing import Optional, Union
 import click
 from dotenv import load_dotenv
 
+def find_project_root() -> Path:
+    """Find the project root by looking for docker-compose.yml"""
+    current = Path.cwd()
+    while current != current.parent:
+        if (current / "docker-compose.yml").exists():
+            return current
+        current = current.parent
+    raise click.ClickException(
+        "Could not find project root. Are you in the TikToken project directory?"
+    )
+
 # Ensure we're in the project root
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = find_project_root()
 os.chdir(PROJECT_ROOT)
 
 # Load environment variables
@@ -190,15 +201,90 @@ def logs():
     click.echo("\n3. Current Health Status:")
     run_cmd('curl -s https://tiktoken-api.onrender.com/health | jq .')
 
-@cli.command()
+@cli.group()
+def dev():
+    """Development environment commands"""
+    pass
+
+@dev.command()
+@click.option('--parallel', '-p', is_flag=True, help='Build images in parallel', default=True)
+@click.option('--no-cache', is_flag=True, help='Build without using cache')
+def build(parallel, no_cache):
+    """Build development images with caching optimizations"""
+    click.echo("Building development images...")
+    cmd = "docker compose build"
+    
+    if parallel:
+        cmd += " --parallel"
+    if no_cache:
+        cmd += " --no-cache"
+        
+    return run_cmd(cmd)
+
+@dev.command()
 @click.option('--detach', '-d', is_flag=True, help='Run in background')
-def dev(detach):
-    """Start development environment"""
+def up(detach):
+    """Start development environment using cached images"""
     click.echo("Starting development environment...")
     cmd = "docker compose up"
     if detach:
         cmd += " -d"
     return run_cmd(cmd)
+
+@dev.command()
+def watch():
+    """Start development with live reload using volume mounts"""
+    click.echo("Starting development environment with live reload...")
+    
+    # Override the compose file to use volume mounts
+    os.environ['COMPOSE_FILE'] = 'docker-compose.yml:docker-compose.dev.yml'
+    
+    return run_cmd("docker compose up")
+
+@dev.command()
+def clean():
+    """Clean development environment"""
+    click.echo("Cleaning development environment...")
+    cmds = [
+        "docker compose down -v",  # Remove containers and volumes
+        "docker compose rm -f",    # Remove any lingering containers
+        "docker system prune -f"   # Clean up unused resources
+    ]
+    
+    for cmd in cmds:
+        if run_cmd(cmd) != 0:
+            return 1
+    
+    click.echo("\n✨ Development environment cleaned!")
+    click.echo("\nNext steps:")
+    click.echo("1. Run 't dev build' to rebuild images")
+    click.echo("2. Run 't dev up' to start environment")
+
+@dev.command()
+def status():
+    """Check development environment status"""
+    click.echo("Checking development status...")
+    
+    # Check container status
+    click.echo("\n🐳 Containers:")
+    run_cmd("docker compose ps")
+    
+    # Check health endpoints
+    click.echo("\n🏥 Health Checks:")
+    services = {
+        'Core API': 'http://localhost:8080/health',
+        'AI Service': 'http://localhost:8081/health',
+        'Frontend': 'http://localhost:3000/health'
+    }
+    
+    for service, url in services.items():
+        result = run_cmd(f'curl -s {url}', echo=False, capture_output=True)
+        status = '✅ Healthy' if result.returncode == 0 else '❌ Unhealthy'
+        click.echo(f"{service}: {status}")
+    
+    # Show resource usage
+    click.echo("\n📊 Resource Usage:")
+    run_cmd("docker stats --no-stream")
 
 @cli.command()
 def setup():
@@ -284,6 +370,157 @@ def clean():
     for cmd in cmds:
         run_cmd(cmd)
     click.echo("✨ Cleanup complete!")
+
+@cli.group()
+def check():
+    """Validation commands"""
+    pass
+
+@check.command()
+def local():
+    """Quick local integration check"""
+    click.echo("Running local integration check...")
+    
+    # 1. Check if services are running
+    click.echo("\n1. Checking services...")
+    services = run_cmd("docker compose ps --format json", capture_output=True)
+    if services.returncode != 0:
+        click.echo("Error: Could not check service status")
+        return 1
+    
+    try:
+        running_services = [
+            svc for svc in json.loads(f"[{services.stdout.strip().replace('}\n{', '},{')}]")
+            if svc.get("State") == "running"
+        ]
+        if not running_services:
+            click.echo("Error: No services are running")
+            click.echo("Run 't dev up' to start services")
+            return 1
+    except json.JSONDecodeError:
+        click.echo("Error: Could not parse service status")
+        return 1
+    
+    # 2. Health checks
+    click.echo("\n2. Running health checks...")
+    health_checks = {
+        "Core API": "http://localhost:8080/health",
+        "AI Service": "http://localhost:8081/health",
+        "Frontend": "http://localhost:3000"
+    }
+    
+    for service, url in health_checks.items():
+        result = run_cmd(f"curl -s {url}", capture_output=True)
+        if result.returncode == 0:
+            click.echo(f"✓ {service}: Healthy")
+        else:
+            click.echo(f"✗ {service}: Unhealthy")
+            return 1
+    
+    # 3. Basic data flow test
+    click.echo("\n3. Testing basic data flow...")
+    test_data = {"text": "Hello, world!"}
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        flow_test = run_cmd(
+            f'curl -s -X POST -H "Content-Type: application/json" '
+            f'-d \'{json.dumps(test_data)}\' '
+            f'http://localhost:8080/api/v1/tokenize',
+            capture_output=True
+        )
+        
+        if flow_test.returncode == 0:
+            try:
+                response = json.loads(flow_test.stdout)
+                if "tokens" in response and "token_count" in response:
+                    click.echo("✓ Data flow test passed")
+                    break
+                else:
+                    click.echo("✗ Data flow test failed: Invalid response format")
+            except json.JSONDecodeError:
+                click.echo("✗ Data flow test failed: Invalid JSON response")
+        else:
+            click.echo("✗ Data flow test failed: Could not reach API")
+        
+        if attempt < max_retries - 1:
+            click.echo(f"Retrying... (attempt {attempt + 2}/{max_retries})")
+        else:
+            return 1
+    
+    click.echo("\n✨ Local integration check passed!")
+    return 0
+
+@check.command()
+def cloud():
+    """Validate cloud-specific configurations"""
+    click.echo("Validating cloud configurations...")
+    
+    # 1. Check required environment variables
+    click.echo("\n1. Checking environment variables...")
+    required_vars = {
+        'RENDER_API_KEY': 'Render deployment',
+        'RENDER_SERVICE_ID': 'Render service',
+        'SUPABASE_URL': 'Supabase connection',
+        'SUPABASE_ANON_KEY': 'Supabase authentication'
+    }
+    
+    missing_vars = []
+    for var, purpose in required_vars.items():
+        if not os.getenv(var):
+            missing_vars.append(f"✗ {var} ({purpose})")
+    
+    if missing_vars:
+        click.echo("Missing required environment variables:")
+        for var in missing_vars:
+            click.echo(var)
+        return 1
+    else:
+        click.echo("✓ All required environment variables are set")
+    
+    # 2. Validate cloud service configurations
+    click.echo("\n2. Validating service configurations...")
+    
+    # Check Supabase connection
+    supabase_test = run_cmd(
+        'curl -s -I -H "apikey: $SUPABASE_ANON_KEY" "$SUPABASE_URL/rest/v1/"',
+        capture_output=True
+    )
+    if supabase_test.returncode == 0:
+        click.echo("✓ Supabase connection verified")
+    else:
+        click.echo("✗ Could not connect to Supabase")
+        return 1
+    
+    # Check Render API access
+    render_test = run_cmd(
+        'curl -s -H "Authorization: Bearer $RENDER_API_KEY" '
+        'https://api.render.com/v1/services/$RENDER_SERVICE_ID',
+        capture_output=True
+    )
+    if render_test.returncode == 0:
+        click.echo("✓ Render API access verified")
+    else:
+        click.echo("✗ Could not access Render API")
+        return 1
+    
+    # 3. Check deployment configurations
+    click.echo("\n3. Checking deployment configurations...")
+    required_files = {
+        '.github/workflows/deploy.yml': 'GitHub Actions workflow',
+        'render.yaml': 'Render blueprint',
+        'supabase/config.toml': 'Supabase configuration'
+    }
+    
+    for file_path, purpose in required_files.items():
+        if (PROJECT_ROOT / file_path).exists():
+            click.echo(f"✓ Found {purpose}")
+        else:
+            click.echo(f"✗ Missing {purpose} at {file_path}")
+            return 1
+    
+    click.echo("\n✨ Cloud configuration validation passed!")
+    return 0
 
 if __name__ == "__main__":
     sys.exit(cli()) 
