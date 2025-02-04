@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pytest = "*"
+pytest-asyncio = "*"
+httpx = "*"
+python-dotenv = "*"
+docker = "*"
+
+[dev-packages]
+black = "*"
+isort = "*"
+
+[requires]
+python_version = "3.11"
+
+[scripts]
+test = "pytest -v"
+test-auth = "pytest test_auth.py -v"
+format = "black . && isort ." 
