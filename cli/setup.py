@@ -5,7 +5,7 @@ setup(
     version="0.1.0",
     packages=find_packages(),
     include_package_data=True,
-    python_requires=">=3.8",
+    python_requires=">=3.12.4",
     install_requires=[
         "typer>=0.9.0",
         "rich>=13.0.0",
