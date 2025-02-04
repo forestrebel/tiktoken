@@ -4,11 +4,25 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-cli = {file = "cli", editable = true}
-tiktoken-cli = {file = "cli", editable = true}
+typer = "*"
+rich = "*"
+pytest = "*"
+pytest-asyncio = "*"
+doctl = "*"
+httpx = "*"
+python-dotenv = "*"
+aiohttp = "*"
+setuptools = "*"
+tiktoken-cli = {file = ".", editable = true}
+
+[dev-packages]
+black = "*"
+isort = "*"
+mypy = "*"
+pylint = "*"
 
 [requires]
-python_version = "3.12.4"
+python_version = "3.10"
 
 [scripts]
 t = "python -m cli.cli"
