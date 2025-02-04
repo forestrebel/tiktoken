@@ -46,3 +46,4 @@ yarn-error.log*
 docker-volumes/
 .coverage
 htmlcov/ 
+.vercel

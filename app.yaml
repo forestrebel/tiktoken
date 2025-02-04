@@ -1,0 +1,22 @@
+name: tiktoken-api
+region: sfo
+services:
+- dockerfile_path: Dockerfile
+  envs:
+  - key: PORT
+    scope: RUN_TIME
+    value: "8080"
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: jon-gauntlet/tiktoken
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 10
+  http_port: 8080
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  name: api
+  source_dir: backend
+  routes:
+  - path: / 

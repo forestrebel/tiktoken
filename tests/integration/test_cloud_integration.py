@@ -28,7 +28,7 @@ CLOUD_CONFIG = {
     "frontend": os.getenv("FRONTEND_URL", "https://tiktoken.com"),
     "ai_service": os.getenv("AI_SERVICE_URL", "https://ai.tiktoken.com"),
     "supabase_url": os.getenv("SUPABASE_URL"),
-    "supabase_key": os.getenv("SUPABASE_KEY")
+    "supabase_key": os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 }
 
 # Required environment variables
@@ -37,7 +37,7 @@ required_vars = [
     "FRONTEND_URL",
     "AI_SERVICE_URL",
     "SUPABASE_URL",
-    "SUPABASE_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
     "TEST_USER_EMAIL",
     "TEST_USER_PASSWORD"
 ]
