@@ -6,7 +6,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from cli.cli.cli import app
+from cli import app
 
 if __name__ == "__main__":
     app() 

@@ -28,4 +28,3 @@ test = "pytest"
 
 [pipenv]
 allow_prereleases = false
-cryptography = "*"

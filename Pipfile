@@ -6,25 +6,27 @@ name = "pypi"
 [packages]
 typer = "*"
 rich = "*"
-pytest = "*"
 pytest-asyncio = "*"
-doctl = "*"
 httpx = "*"
-python-dotenv = "*"
+pytest = "*"
+pytest-docker = "*"
+docker = "*"
 aiohttp = "*"
-setuptools = "*"
 tiktoken-cli = {file = ".", editable = true}
-"discord.py" = "*"
-requests = "*"
 
 [dev-packages]
-black = "*"
-isort = "*"
-mypy = "*"
-pylint = "*"
+pytest = "*"
+pytest-asyncio = "*"
+pytest-timeout = "*"
+pytest-xdist = "*"
 
 [requires]
 python_version = "3.12.4"
 
 [scripts]
 t = "python -m cli.cli"
+test = "pytest"
+
+[pipenv]
+allow_prereleases = false
+cryptography = "*"

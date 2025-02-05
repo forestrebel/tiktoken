@@ -1,81 +1,54 @@
-"""Critical path tests for deployment verification.
-Following MINIMAL_TESTING.md guidelines:
-- Focus on critical paths only
-- Maintain zero-wait properties
-- Skip framework features
-- Skip complex scenarios
-"""
-import os
+"""Test only what protects user value."""
 import pytest
 import aiohttp
-import asyncio
-from typing import Dict
 
-# Zero-wait properties
-TIMEOUT = 3  # seconds
-MAX_WAIT = 5  # seconds
+# Properties
+TIMEOUT = 2  # Fail faster
+API = "http://localhost:8000"  # Core API
 
-# Service configuration
-SERVICES: Dict[str, Dict[str, str]] = {
-    "supabase": {
-        "url": os.getenv("SUPABASE_URL", ""),
-        "health": "/health"
-    },
-    "do-api": {
-        "url": os.getenv("DO_API_URL", ""),
-        "health": "/health"
-    },
-    "vercel": {
-        "url": os.getenv("VERCEL_URL", ""),
-        "health": "/api/health"
-    }
-}
+@pytest.fixture
+async def client():
+    """Quick client setup."""
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=TIMEOUT)) as session:
+        yield session
 
-async def check_service(service: str, session: aiohttp.ClientSession) -> bool:
-    """Quick health check for a service."""
-    if service not in SERVICES:
-        return False
-    
-    config = SERVICES[service]
-    if not config["url"]:
-        pytest.skip(f"No URL configured for {service}")
-    
-    try:
-        async with session.get(
-            f"{config['url']}{config['health']}", 
-            timeout=TIMEOUT
-        ) as response:
-            return response.status == 200
-    except Exception:
-        return False
+async def test_alive(client):
+    """Are critical services responding?"""
+    async with client.get(f"{API}/health") as r:
+        assert r.status == 200
 
-@pytest.mark.asyncio
-async def test_supabase_health():
-    """Verify Supabase is healthy."""
-    async with aiohttp.ClientSession() as session:
-        assert await check_service("supabase", session)
+async def test_auth_works(client):
+    """Can user log in and stay logged in?"""
+    # Login with test user
+    async with client.post(f"{API}/auth/login", json={
+        "email": "test@example.com",
+        "password": "test123"
+    }) as r:
+        token = (await r.json())["token"]
+        assert r.status == 200 and token
 
-@pytest.mark.asyncio
-async def test_api_health():
-    """Verify Core API is healthy."""
-    async with aiohttp.ClientSession() as session:
-        assert await check_service("do-api", session)
+    # Token works
+    async with client.get(
+        f"{API}/auth/me",
+        headers={"Authorization": f"Bearer {token}"}
+    ) as r:
+        assert r.status == 200
 
-@pytest.mark.asyncio
-async def test_frontend_health():
-    """Verify Frontend is healthy."""
-    async with aiohttp.ClientSession() as session:
-        assert await check_service("vercel", session)
+async def test_upload_saves(client):
+    """Can user upload video and find it later?"""
+    # Upload small test video
+    async with client.post(
+        f"{API}/videos/upload",
+        data=b"test" * 256,  # 1KB test data
+        headers={"Authorization": "test-token"}
+    ) as r:
+        data = await r.json()
+        assert r.status == 200
+        video_id = data["id"]
 
-@pytest.mark.asyncio
-async def test_deployment_order():
-    """Verify services are deployed in correct order."""
-    async with aiohttp.ClientSession() as session:
-        # 1. Database must be up first
-        assert await check_service("supabase", session)
-        
-        # 2. API depends on database
-        assert await check_service("do-api", session)
-        
-        # 3. Frontend depends on API
-        assert await check_service("vercel", session) 
+    # Video exists
+    async with client.head(
+        f"{API}/videos/{video_id}",
+        headers={"Authorization": "test-token"}
+    ) as r:
+        assert r.status == 200 
