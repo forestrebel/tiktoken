@@ -1,17 +1,16 @@
 """Initialize secrets for an environment."""
 import json
 import sys
-import click
-from cli.cli.secrets_manager import SecretsManager
-from cli.cli.commands.secrets import (
+import typer
+from cli.secrets_manager import SecretsManager
+from cli.commands.secrets.utils import (
     check_cli_tools,
     generate_default_secrets
 )
 
-@click.command()
-@click.option('--env', '-e', required=True,
-              help='Environment (dev/staging/prod)')
-def main(env: str):
+def init_secrets(
+    env: str = typer.Option(..., '--env', '-e', help='Environment (dev/staging/prod)', prompt=True)
+):
     """Initialize secrets for an environment."""
     try:
         # Check available tools
@@ -85,6 +84,4 @@ def main(env: str):
     except Exception as e:
         print(f"Error initializing secrets: {e}", file=sys.stderr)
         sys.exit(1)
-
-if __name__ == '__main__':
-    main() 
+ 

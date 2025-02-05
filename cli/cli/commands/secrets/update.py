@@ -1,16 +1,13 @@
 """Update secrets for an environment."""
 import json
 import sys
-import click
-from cli.cli.secrets_manager import SecretsManager
+import typer
+from cli.secrets_manager import SecretsManager
 
-@click.command()
-@click.option('--env', '-e', required=True,
-              help='Environment (dev/staging/prod)')
-@click.option('--file', '-f', required=True,
-              type=click.Path(exists=True),
-              help='JSON file containing secrets')
-def main(env: str, file: str):
+def update_secret(
+    env: str = typer.Option(..., '--env', '-e', help='Environment (dev/staging/prod)', prompt=True),
+    file: str = typer.Option(..., '--file', '-f', help='JSON file containing secrets', exists=True)
+):
     """Update secrets from a JSON file."""
     try:
         with open(file) as f:
@@ -22,6 +19,4 @@ def main(env: str, file: str):
     except Exception as e:
         print(f"Error updating secrets: {e}", file=sys.stderr)
         sys.exit(1)
-
-if __name__ == '__main__':
-    main() 
+ 

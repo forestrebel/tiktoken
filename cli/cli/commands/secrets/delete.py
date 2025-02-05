@@ -1,14 +1,12 @@
 """Delete secrets for an environment."""
 import sys
-import click
-from cli.cli.secrets_manager import SecretsManager
+import typer
+from cli.secrets_manager import SecretsManager
 
-@click.command()
-@click.option('--env', '-e', required=True,
-              help='Environment (dev/staging/prod)')
-@click.option('--force', '-f', is_flag=True,
-              help='Skip confirmation')
-def main(env: str, force: bool):
+def delete_secret(
+    env: str = typer.Option(..., '--env', '-e', help='Environment (dev/staging/prod)', prompt=True),
+    force: bool = typer.Option(False, '--force', '-f', help='Skip confirmation')
+):
     """Delete all secrets for an environment."""
     try:
         manager = SecretsManager(env)
@@ -17,6 +15,4 @@ def main(env: str, force: bool):
     except Exception as e:
         print(f"Error deleting secrets: {e}", file=sys.stderr)
         sys.exit(1)
-
-if __name__ == '__main__':
-    main() 
+ 

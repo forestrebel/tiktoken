@@ -12,8 +12,8 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from cli.cli.deploy import deploy_service, deploy_all, check_service
-from cli.cli.verify import (
+from cli.deploy import deploy_service, deploy_all, check_service
+from cli.verify import (
     verify_local_dev_setup,
     verify_content_flow,
     verify_dependencies,
@@ -24,8 +24,11 @@ from cli.cli.verify import (
     verify_integration
 )
 from cli.process import ProcessManager, JobStatus
-from cli.cli.setup import setup_app
-from cli.cli.pipeline import run_pipeline_verification, run_deployment_verification, display_verification_results
+from cli.setup import setup_app
+from cli.pipeline import run_pipeline_verification, run_deployment_verification, display_verification_results
+
+# Import secrets subcommand
+from cli.commands.secrets import secrets_app
 
 app = typer.Typer(
     help="TikToken development CLI - Container-First Development Tool",
@@ -36,6 +39,7 @@ deploy_app = typer.Typer(help="Deployment commands")
 app.add_typer(verify_app, name="verify")
 app.add_typer(deploy_app, name="deploy")
 app.add_typer(setup_app, name="setup")
+app.add_typer(secrets_app, name="secrets")
 console = Console()
 process_manager = ProcessManager()
 

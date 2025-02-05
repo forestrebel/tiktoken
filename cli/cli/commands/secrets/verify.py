@@ -2,10 +2,11 @@
 import json
 import sys
 import boto3
+import typer
 from botocore.exceptions import ClientError
-from cli.cli.secrets_manager import SecretsManager
+from cli.secrets_manager import SecretsManager
 
-def main():
+def verify_secrets():
     """Verify AWS credentials and secrets manager access."""
     try:
         # Check AWS credentials
@@ -54,6 +55,4 @@ def main():
     except Exception as e:
         print(f"Error verifying setup: {str(e)}", file=sys.stderr)
         sys.exit(1)
-
-if __name__ == '__main__':
-    main() 
+ 
