@@ -19,7 +19,10 @@ const makeVideo = (output, { size = '720x1280', duration = 5 } = {}) => {
       .outputOptions([
         `-s ${size}`,
         '-r 30',
-        '-c:v libx264'
+        '-c:v libx264',
+        '-color_primaries bt709',
+        '-color_trc bt709',
+        '-colorspace bt709'
       ])
       .output(output)
       .on('end', resolve)
@@ -68,5 +71,11 @@ describe('validateVideo', () => {
     const result = await validateVideo('nonexistent.mp4');
     expect(result.valid).toBe(false);
     expect(result.error).toMatch(/not found/);
+  });
+
+  test('validates color space', async () => {
+    const result = await validateVideo(FIXTURES.VALID);
+    expect(result.valid).toBe(true);
+    expect(result.specs.colorSpace.toLowerCase()).toBe('bt709');
   });
 });

@@ -23,7 +23,8 @@ const getSpecs = (path) => new Promise((resolve, reject) => {
       width: video.width,
       height: video.height,
       fps: eval(video.r_frame_rate),
-      duration: parseFloat(data.format.duration)
+      duration: parseFloat(data.format.duration),
+      colorSpace: video.color_space || 'unknown'
     });
   });
 });
@@ -38,6 +39,9 @@ const getError = (specs) => {
   }
   if (specs.duration > LIMITS.MAX_DURATION) {
     return `Video too long: ${specs.duration}s`;
+  }
+  if (specs.colorSpace.toLowerCase() !== 'bt709') {
+    return `Invalid color space: ${specs.colorSpace}. Must be BT.709`;
   }
   return null;
 };
