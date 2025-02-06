@@ -4,7 +4,7 @@ import Video from 'react-native-video';
 import { videoService } from '../services';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+const VIDEO_HEIGHT = (SCREEN_WIDTH * 16) / 9; // Force 9:16 aspect ratio
 
 /**
  * Full-screen vertical video playback screen
@@ -13,16 +13,43 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 export default function ViewScreen({ route }) {
   const { videoId } = route.params;
   const [video, setVideo] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const loadVideo = async () => {
-      const result = await videoService.getVideo(videoId);
-      if (result.status === 'success') {
-        setVideo(result.data);
+      // Check if this is a demo video
+      if (videoId.startsWith('demo')) {
+        const result = await videoService.getDemoVideo(videoId);
+        if (result.status === 'success') {
+          setVideo(result.data);
+        } else {
+          setError('Failed to load demo video');
+        }
+      } else {
+        // Load regular video
+        const result = await videoService.getVideo(videoId);
+        if (result.status === 'success') {
+          setVideo(result.data);
+        } else {
+          setError('Failed to load video');
+        }
       }
     };
     loadVideo();
   }, [videoId]);
+
+  const handleError = (err) => {
+    console.error('Video playback error:', err);
+    setError('Failed to play video');
+  };
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
 
   if (!video) {
     return (
@@ -32,14 +59,20 @@ export default function ViewScreen({ route }) {
     );
   }
 
+  // For demo videos, use a bundled asset
+  const source = video.id.startsWith('demo') 
+    ? require('../assets/demo1.mp4')  // This will be our demo video
+    : { uri: videoService.getVideoPath(video.filename) };
+
   return (
     <View style={styles.container}>
       <Video
-        source={{ uri: videoService.getVideoPath(video.filename) }}
+        source={source}
         style={styles.video}
-        resizeMode="contain"
+        resizeMode="cover"
         repeat={true}
         controls={true}
+        onError={handleError}
       />
     </View>
   );
@@ -54,9 +87,15 @@ const styles = StyleSheet.create({
   },
   video: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    height: VIDEO_HEIGHT,
+    backgroundColor: '#000',
   },
   loadingText: {
     color: '#fff',
+    fontSize: 16,
+  },
+  errorText: {
+    color: '#ff4444',
+    fontSize: 16,
   },
 }); 
