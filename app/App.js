@@ -12,7 +12,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaView, StatusBar, useColorScheme } from 'react-native';
 import { Colors } from 'react-native/Libraries/NewAppScreen';
 import ViewScreen from './src/screens/ViewScreen';
-import HomeScreen from './src/screens/RecordScreen';
+import HomeScreen from './src/screens/HomeScreen';
 
 const Stack = createStackNavigator();
 
