@@ -1,0 +1,38 @@
+name: Minimal Deploy Pipeline
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.4'
+          
+      - name: Install dependencies
+        env:
+          PIPENV_PYTHON: python3
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv
+          pipenv install --dev
+          
+      - name: Run Critical Tests
+        run: |
+          pipenv run pytest
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Deploy
+        run: echo "Deployment would happen here"

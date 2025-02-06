@@ -1,0 +1,34 @@
+name: tiktoken-api
+region: sfo
+services:
+  - name: api
+    dockerfile_path: backend/Dockerfile
+    source_dir: backend
+    github:
+      repo: jon-gauntlet/tiktoken
+      branch: main
+      deploy_on_push: true
+    http_port: 8080
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+    envs:
+      - key: PORT
+        value: "8080"
+        scope: RUN_TIME
+      - key: AI_SERVICE_URL
+        value: "${AI_SERVICE_URL}"  # Will be set to AWS endpoint
+        scope: RUN_TIME
+      - key: CORS_ORIGINS
+        value: "${CORS_ORIGINS}"
+        scope: RUN_TIME
+
+ingress:
+  rules:
+    - match:
+        path:
+          prefix: /api
+      component:
+        name: api 
