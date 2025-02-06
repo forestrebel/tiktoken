@@ -12,12 +12,13 @@ RUN mkdir -p /app/state /app/tmp
 
 # Install dependencies first (better caching)
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy source files
 COPY src ./src
 COPY tests ./tests
 COPY scripts ./scripts
+COPY jest.config.js .
 
 # Set environment variables
 ENV NODE_ENV=test

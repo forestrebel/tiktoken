@@ -20,6 +20,7 @@ const makeVideo = (output, { size = '720x1280', duration = 5 } = {}) => {
         `-s ${size}`,
         '-r 30',
         '-c:v libx264',
+        '-b:v 2M',
         '-color_primaries bt709',
         '-color_trc bt709',
         '-colorspace bt709'
@@ -70,7 +71,7 @@ describe('validateVideo', () => {
   test('handles missing file', async () => {
     const result = await validateVideo('nonexistent.mp4');
     expect(result.valid).toBe(false);
-    expect(result.error).toMatch(/not found/);
+    expect(result.error).toMatch(/ENOENT/);
   });
 
   test('validates color space', async () => {
