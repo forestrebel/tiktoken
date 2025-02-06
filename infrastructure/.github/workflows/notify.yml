@@ -1,0 +1,50 @@
+name: Deployment Notifications
+
+on:
+  workflow_dispatch:
+  deployment_status:
+  workflow_run:
+    workflows: ["Deploy Services"]
+    types:
+      - completed
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          WORKFLOW_NAME: ${{ github.event.workflow.name || github.event.workflow_run.name }}
+          STATUS: ${{ github.event.workflow_run.conclusion || github.event.deployment_status.state || 'triggered' }}
+        run: |
+          # Prepare status message
+          if [ "$STATUS" = "success" ]; then
+            STATUS_EMOJI="🟢"
+          elif [ "$STATUS" = "failure" ]; then
+            STATUS_EMOJI="🔴"
+          else
+            STATUS_EMOJI="🟡"
+          fi
+
+          # Build message content
+          MESSAGE="$STATUS_EMOJI **Deployment Update**
+          Workflow: \`$WORKFLOW_NAME\`
+          Status: \`$STATUS\`
+          
+          **Services:**
+          • Core API: https://tiktoken-api-huipe.ondigitalocean.app/health
+          • AI Service: https://tiktoken-api-huipe.ondigitalocean.app/ai/health
+          • Frontend: ${{ secrets.VERCEL_DEPLOYMENT_URL }}"
+
+          # Add error details if available
+          if [ "$STATUS" = "failure" ]; then
+            MESSAGE="$MESSAGE
+            
+            ⚠️ Check GitHub Actions for error details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+
+          # Send to Discord
+          curl -H "Content-Type: application/json" \
+               -d "{\"content\": \"$MESSAGE\"}" \
+               $DISCORD_WEBHOOK 
