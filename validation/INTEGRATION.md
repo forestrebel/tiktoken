@@ -171,3 +171,88 @@ The validation service provides detailed error information:
 ### Web
 - Use File API for client-side validation
 - Consider using Web Workers for performance
+
+## Firebase Storage Integration
+
+```javascript
+const { validateVideo } = require('@tiktoken/validation');
+const { initializeApp } = require('firebase/app');
+const { getStorage, ref, uploadBytes, getDownloadURL } = require('firebase/storage');
+
+// Initialize Firebase
+const firebaseConfig = {
+  // Your Firebase config
+};
+
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
+
+async function uploadToFirebase(filePath) {
+  try {
+    // Validate video first
+    const validationResult = await validateVideo(filePath);
+    
+    if (!validationResult.valid) {
+      throw new Error(`Video validation failed: ${validationResult.error}`);
+    }
+    
+    // Generate unique filename
+    const filename = `videos/${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
+    const storageRef = ref(storage, filename);
+    
+    // Read file and upload
+    const fileBuffer = await fs.readFile(filePath);
+    const snapshot = await uploadBytes(storageRef, fileBuffer, {
+      contentType: 'video/mp4',
+      customMetadata: {
+        width: validationResult.specs.width.toString(),
+        height: validationResult.specs.height.toString(),
+        fps: validationResult.specs.fps.toString(),
+        duration: validationResult.specs.duration.toString(),
+        colorSpace: validationResult.specs.colorSpace
+      }
+    });
+    
+    // Get download URL
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    return {
+      url: downloadURL,
+      path: filename,
+      specs: validationResult.specs
+    };
+  } catch (error) {
+    console.error('Upload failed:', error);
+    throw error;
+  }
+}
+
+// Example usage with Express
+app.post('/upload', upload.single('video'), async (req, res) => {
+  try {
+    const result = await uploadToFirebase(req.file.path);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+```
+
+### Security Rules
+
+Add these Firebase Storage security rules to enforce video validation:
+
+```javascript
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /videos/{videoId} {
+      allow read: if true;
+      allow write: if request.resource.size <= 6 * 1024 * 1024 // 6MB
+                   && request.resource.contentType == 'video/mp4'
+                   && request.resource.metadata.width == '720'
+                   && request.resource.metadata.height == '1280';
+    }
+  }
+}
+```
