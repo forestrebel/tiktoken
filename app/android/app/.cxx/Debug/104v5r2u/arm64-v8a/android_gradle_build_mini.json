@@ -2,6 +2,8 @@
   "buildFiles": [
     "/home/jon/git/tiktoken/app/node_modules/@react-native-async-storage/async-storage/android/build/generated/source/codegen/jni/CMakeLists.txt",
     "/home/jon/git/tiktoken/app/node_modules/react-native-document-picker/android/build/generated/source/codegen/jni/CMakeLists.txt",
+    "/home/jon/git/tiktoken/app/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/CMakeLists.txt",
+    "/home/jon/git/tiktoken/app/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/CMakeLists.txt",
     "/home/jon/git/tiktoken/app/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt",
     "/home/jon/git/tiktoken/app/node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt",
     "/home/jon/git/tiktoken/app/node_modules/react-native/ReactAndroid/cmake-utils/default-app-setup/CMakeLists.txt"
@@ -21,6 +23,11 @@
     "{LIST_OF_TARGETS_TO_BUILD}"
   ],
   "libraries": {
+    "react_codegen_rnreanimated::@8afabad14bfffa3f8b9a": {
+      "artifactName": "react_codegen_rnreanimated",
+      "abi": "arm64-v8a",
+      "runtimeFiles": []
+    },
     "react_codegen_safeareacontext::@7984cd80db47aa7b952a": {
       "artifactName": "react_codegen_safeareacontext",
       "abi": "arm64-v8a",
@@ -30,6 +37,11 @@
         "/home/jon/.gradle/caches/8.10.2/transforms/ffe8bc820e361c19e57c6796da86db29/transformed/react-android-0.77.0-debug/prefab/modules/jsi/libs/android.arm64-v8a/libjsi.so",
         "/home/jon/.gradle/caches/8.10.2/transforms/ffe8bc820e361c19e57c6796da86db29/transformed/react-android-0.77.0-debug/prefab/modules/reactnative/libs/android.arm64-v8a/libreactnative.so"
       ]
+    },
+    "react_codegen_rngesturehandler_codegen::@39f233abcd2c728bc6ec": {
+      "artifactName": "react_codegen_rngesturehandler_codegen",
+      "abi": "arm64-v8a",
+      "runtimeFiles": []
     },
     "react_codegen_rnscreens::@25bcbd507e98d3a854ad": {
       "artifactName": "react_codegen_rnscreens",

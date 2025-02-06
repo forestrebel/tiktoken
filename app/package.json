@@ -7,16 +7,38 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "test:demo": "jest -t 'demo flow'",
+    "dev": "npm-run-all --parallel start validate:video",
+    "dev:clean": "npm-run-all clean validate reset",
+    "validate": "npm-run-all --parallel validate:*",
+    "validate:video": "node scripts/validate-video.js",
+    "validate:size": "node scripts/check-size.js",
+    "build": "npm-run-all validate build:*",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "build:android:bundle": "cd android && ./gradlew bundleRelease",
+    "deploy": "npm-run-all validate build deploy:*",
+    "deploy:android": "node scripts/deploy-android.js",
+    "deploy:upload": "node scripts/upload-artifacts.js",
+    "health": "npm-run-all --parallel health:*",
+    "health:deps": "npx depcheck",
+    "health:doctor": "react-native doctor",
+    "clean": "rimraf android/app/build",
+    "reset": "watchman watch-del-all && npm start -- --reset-cache",
+    "prepare": "npm run clean"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.1",
+    "@react-native-masked-view/masked-view": "^0.3.2",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/stack": "^7.1.1",
+    "ffmpeg-kit-react-native": "^6.0.2",
     "react": "18.3.1",
     "react-native": "0.77.0",
     "react-native-document-picker": "^9.3.1",
     "react-native-fs": "^2.20.0",
+    "react-native-gesture-handler": "^2.23.0",
+    "react-native-reanimated": "^3.16.7",
     "react-native-safe-area-context": "^5.2.0",
     "react-native-screens": "^4.6.0",
     "react-native-video": "^6.10.0"
@@ -31,17 +53,42 @@
     "@react-native/babel-preset": "0.77.0",
     "@react-native/eslint-config": "0.77.0",
     "@react-native/metro-config": "0.77.0",
-    "@react-native/typescript-config": "0.77.0",
     "@types/jest": "^29.5.13",
-    "@types/react": "^18.2.6",
-    "@types/react-test-renderer": "^18.0.0",
     "eslint": "^8.19.0",
     "jest": "^29.6.3",
+    "npm-run-all": "^4.1.5",
     "prettier": "2.8.8",
     "react-test-renderer": "18.3.1",
-    "typescript": "5.0.4"
+    "rimraf": "^5.0.5"
   },
   "engines": {
     "node": ">=18"
+  },
+  "jest": {
+    "preset": "react-native",
+    "setupFiles": [
+      "./jest.setup.js"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.js"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(react-native|@react-native|@react-navigation)/)"
+    ],
+    "moduleNameMapper": {
+      "\\.(jpg|jpeg|png|gif|webp|svg)$": "<rootDir>/__mocks__/fileMock.js"
+    },
+    "collectCoverageFrom": [
+      "src/screens/**/*.js",
+      "src/components/**/*.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 50,
+        "branches": 50,
+        "functions": 50,
+        "lines": 50
+      }
+    }
   }
-} 
+}

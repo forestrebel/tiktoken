@@ -1,47 +1,61 @@
-import React, { useEffect, useState } from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
-import { Navigation } from './src/navigation';
-import { authService, initServices } from './src/services';
+/**
+ * Sample React Native App
+ * https://github.com/facebook/react-native
+ *
+ * @format
+ */
 
-export default function App() {
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const [initializing, setInitializing] = useState(true);
+import 'react-native-gesture-handler';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaView, StatusBar, useColorScheme } from 'react-native';
+import { Colors } from 'react-native/Libraries/NewAppScreen';
+import ViewScreen from './src/screens/ViewScreen';
+import HomeScreen from './src/screens/RecordScreen';
 
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        // Initialize services
-        await initServices();
-        
-        // Check auth state
-        const result = await authService.getCurrentUser();
-        if (result.status === 'success' && result.data) {
-          setIsSignedIn(true);
-        }
-      } catch (error) {
-        console.error('Initialization failed:', error);
-      } finally {
-        setInitializing(false);
-      }
-    };
+const Stack = createStackNavigator();
 
-    initialize();
-  }, []);
-
-  if (initializing) {
-    return null; // Or a loading screen
-  }
+function App() {
+  const isDarkMode = useColorScheme() === 'dark';
+  const backgroundStyle = {
+    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+    flex: 1,
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Navigation isSignedIn={isSignedIn} />
-    </SafeAreaView>
+    <NavigationContainer>
+      <SafeAreaView style={backgroundStyle}>
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor={backgroundStyle.backgroundColor}
+        />
+        <Stack.Navigator
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+            },
+            headerTintColor: isDarkMode ? Colors.lighter : Colors.darker,
+          }}
+        >
+          <Stack.Screen 
+            name="Home" 
+            component={HomeScreen}
+            options={{
+              title: 'Nature Collection'
+            }}
+          />
+          <Stack.Screen 
+            name="View" 
+            component={ViewScreen}
+            options={{
+              title: 'Preview'
+            }}
+          />
+        </Stack.Navigator>
+      </SafeAreaView>
+    </NavigationContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-}); 
+export default App;
