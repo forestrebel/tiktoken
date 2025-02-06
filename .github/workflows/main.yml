@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI/CD
 
 on:
   push:
@@ -7,86 +7,162 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  critical-path:
     runs-on: ubuntu-latest
+    timeout-minutes: 5  # Fail fast for critical tests
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
-      # Backend Tests
+      - name: Critical Health Check
+        run: |
+          timeout 30s bash -c '
+            until curl -f http://localhost:8000/health; do
+              echo "Waiting for API..."
+              sleep 2
+            done
+          '
+        
+      - name: Critical Auth Flow
+        run: |
+          TOKEN=$(curl -s -X POST http://localhost:8000/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"test@example.com","password":"test123"}' \
+            | jq -r .token)
+          curl -f -H "Authorization: Bearer $TOKEN" http://localhost:8000/auth/me
+
+      - name: Critical Upload Flow
+        run: |
+          dd if=/dev/zero of=test.mp4 bs=1024 count=1
+          TOKEN=$(curl -s -X POST http://localhost:8000/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"test@example.com","password":"test123"}' \
+            | jq -r .token)
+          VIDEO_ID=$(curl -s -X POST http://localhost:8000/videos/upload \
+            -H "Authorization: Bearer $TOKEN" \
+            -F "video=@test.mp4" \
+            | jq -r .id)
+          curl -f -H "Authorization: Bearer $TOKEN" http://localhost:8000/videos/$VIDEO_ID
+
+  test:
+    needs: critical-path
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: supabase/postgres:15.1.0.117
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 54322:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-          
-      - name: Install backend dependencies
-        run: |
-          pip install pipenv
-          cd backend
-          pipenv install --dev
-          
-      - name: Run backend tests
-        run: |
-          cd backend
-          pipenv run pytest
-          
-      # Frontend Tests
+          python-version: '3.12'
+
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-          
-      - name: Install frontend dependencies
+
+      - name: Install FFmpeg
         run: |
-          cd frontend
-          npm ci
-          
-      - name: Run frontend tests
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
         run: |
-          cd frontend
-          npm test -- --run
+          python -m pip install --upgrade pip
+          cd backend && pip install -r requirements.txt
+          cd ../ai && pip install -r requirements.txt
+          cd ../app && npm install
+
+      - name: Run tests
+        run: make test
+        env:
+          SUPABASE_URL: http://localhost:54322
+          SUPABASE_KEY: postgres
+          MOCK_SERVICES: true
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build Android app
+        run: make deploy.mobile
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+
+      - name: Build backend services
+        run: |
+          docker compose -f docker-compose.prod.yml build
+          docker tag tiktoken-api:latest ${{ secrets.DO_REGISTRY }}/tiktoken-api:${{ github.sha }}
+
+      - name: Save artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-artifacts
+          path: |
+            app/android/app/build/outputs/apk/release/*.apk
+            app/android/app/build/outputs/bundle/release/*.aab
 
   deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
+    needs: build
     runs-on: ubuntu-latest
-    environment: production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Deploy to Render
-        uses: JorgeLNJunior/render-deploy@v1.4.3
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          service_id: ${{ secrets.RENDER_SERVICE_ID }}
-          api_key: ${{ secrets.RENDER_API_KEY }}
-          wait_deploy: true
-          
-      - name: Verify Backend Deployment
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: release-artifacts
+
+      - name: Deploy to DigitalOcean
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DO_API_TOKEN }}
+        
+      - name: Deploy backend
         run: |
-          echo "Waiting for backend to stabilize..."
-          for i in {1..6}; do
-            if curl -f https://tiktoken-api.onrender.com/health; then
-              echo "Backend is healthy!"
-              exit 0
-            fi
-            echo "Attempt $i failed, waiting 30s..."
-            sleep 30
-          done
-          echo "Backend health check failed after 3 minutes"
-          exit 1
-          
-      - name: Verify Frontend Deployment
+          doctl apps update ${{ secrets.DO_APP_ID }} --spec .do/app.yaml
+          doctl apps create-deployment ${{ secrets.DO_APP_ID }}
+
+      - name: Upload to S3
         run: |
-          echo "Waiting for frontend to stabilize..."
-          for i in {1..6}; do
-            if curl -f https://tiktoken-web.onrender.com/; then
-              echo "Frontend is accessible!"
-              exit 0
-            fi
-            echo "Attempt $i failed, waiting 30s..."
-            sleep 30
-          done
-          echo "Frontend check failed after 3 minutes"
-          exit 1 
+          aws s3 cp app/android/app/build/outputs/apk/release/app-release.apk \
+            s3://tiktoken-artifacts/android/app-release-${{ github.sha }}.apk
+
+      - name: Notify deployment
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: 'deployments'
+          slack-message: "Deployment complete! :rocket:\nCommit: ${{ github.sha }}\nEnvironment: Production"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }} 
