@@ -10,7 +10,7 @@ import {
   Vibration,
   FlatList,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import { videoService } from '../services/video';
@@ -21,12 +21,12 @@ import Animated, {
   withTiming,
   Easing,
   interpolateColor,
-  useSharedValue
+  useSharedValue,
 } from 'react-native-reanimated';
 
 const SPRING_CONFIG = {
   damping: 15,
-  stiffness: 150
+  stiffness: 150,
 };
 
 const { width } = Dimensions.get('window');
@@ -52,7 +52,7 @@ const ImportButton = ({ onPress, isLoading, progress }) => {
       backgroundColor.value,
       [0, 1],
       ['#4444ff', '#00cc66']
-    )
+    ),
   }));
 
   const handlePress = async () => {
@@ -73,7 +73,7 @@ const ImportButton = ({ onPress, isLoading, progress }) => {
         activeOpacity={0.8}
       >
         <Text style={styles.importButtonText}>
-          {isLoading 
+          {isLoading
             ? progress || 'Importing...'
             : 'Import Nature Video'
           }
@@ -103,13 +103,13 @@ const HomeScreen = ({ navigation }) => {
         console.error('Failed to initialize:', error);
       }
     };
-    
+
     initializeApp();
   }, []);
 
   const handleImport = async () => {
-    if (importing) return;
-    
+    if (importing) {return;}
+
     try {
       setImporting(true);
       setImportProgress('Selecting video...');
@@ -117,7 +117,7 @@ const HomeScreen = ({ navigation }) => {
       // Open document picker
       const result = await DocumentPicker.pick({
         type: [DocumentPicker.types.video],
-        copyTo: 'cachesDirectory'
+        copyTo: 'cachesDirectory',
       });
 
       if (!result || !result[0]) {
@@ -135,7 +135,7 @@ const HomeScreen = ({ navigation }) => {
       // Quick validation
       const validation = await videoService.validateVideo(videoUri);
       console.log('Validation result:', validation);
-      
+
       if (validation.status === 'error') {
         setImportProgress('');
         throw new Error(validation.error || 'Invalid video format');
@@ -143,12 +143,12 @@ const HomeScreen = ({ navigation }) => {
 
       setImportProgress('Importing video...');
       console.log('Importing video...');
-      
+
       const importResult = await videoService.importVideo(
         videoUri,
         (progress) => setImportProgress(`Importing: ${Math.round(progress * 100)}%`)
       );
-      
+
       console.log('Import result:', importResult);
 
       if (!importResult || importResult.status === 'error') {
@@ -160,15 +160,15 @@ const HomeScreen = ({ navigation }) => {
         id: Date.now().toString(),
         uri: importResult.uri,
         filename: importResult.filename,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
 
       setVideos(prev => [newVideo, ...prev]);
       showToast('Video imported successfully');
-      
+
       // Navigate to preview
       navigation.navigate('View', { videoId: newVideo.id });
-      
+
     } catch (err) {
       console.error('Import error:', err);
       if (!DocumentPicker.isCancel(err)) {
@@ -177,10 +177,10 @@ const HomeScreen = ({ navigation }) => {
           err.message || 'Failed to import video. Please try again.',
           [
             { text: 'OK' },
-            { 
+            {
               text: 'Try Again',
-              onPress: handleImport
-            }
+              onPress: handleImport,
+            },
           ]
         );
       }
@@ -217,14 +217,14 @@ const HomeScreen = ({ navigation }) => {
               console.error('Reset failed:', error);
               Alert.alert('Reset Failed', error.message || 'Failed to reset video library');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   const renderVideo = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.gridItem}
       onPress={() => handleVideoPress(item)}
     >
@@ -351,4 +351,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen; 
+export default HomeScreen;

@@ -9,16 +9,27 @@ import {
   Alert,
   PermissionsAndroid,
   ToastAndroid,
+  Dimensions,
 } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import { videoService } from '../services/video';
 import RNFS from 'react-native-fs';
 
-const VALID_FORMATS = ['mp4', 'mov', 'quicktime'];
-const MAX_SIZE_MB = 100;
-const MIN_DURATION_SEC = 1;
-const MAX_DURATION_SEC = 300; // 5 minutes
-const MAX_RESOLUTION = 1920 * 1080; // Full HD max
+// Constants for video validation
+const VIDEO_CONSTRAINTS = {
+  formats: ['mp4'],
+  maxSizeMB: 100,
+  minDurationSec: 1,
+  maxDurationSec: 60, // Reduced to 60 seconds for nature content
+  aspectRatio: {
+    width: 9,
+    height: 16,
+  },
+  resolution: {
+    width: 720,
+    height: 1280,
+  },
+};
 
 const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
   const [isImporting, setIsImporting] = useState(false);
@@ -29,7 +40,6 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
   useEffect(() => {
     checkPermissions();
     return () => {
-      // Cleanup any temp files on unmount
       cleanupTempFiles();
     };
   }, []);
@@ -51,7 +61,7 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
         setHasPermission(allGranted);
 
         if (!allGranted) {
-          showError('Storage permissions are required to import videos');
+          showError('Storage access is required to import nature videos');
         } else {
           console.log('All permissions granted');
         }
@@ -76,14 +86,14 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
     }
   };
 
-  const validateVideo = async (file) => {
-    console.log('Validating video file:', {
+  const validateVideoFormat = async (file) => {
+    console.log('Validating video format:', {
       name: file.name,
       type: file.type,
       size: file.size,
-      uri: file.uri
+      uri: file.uri,
     });
-    
+
     // Basic validation
     if (!file || !file.uri) {
       throw new Error('Invalid file selected');
@@ -92,19 +102,21 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
     // Size validation
     const sizeMB = file.size / (1024 * 1024);
     console.log('File size:', sizeMB.toFixed(2), 'MB');
-    if (sizeMB > MAX_SIZE_MB) {
-      throw new Error(`Video must be under ${MAX_SIZE_MB}MB (current: ${Math.round(sizeMB)}MB)`);
+    if (sizeMB > VIDEO_CONSTRAINTS.maxSizeMB) {
+      throw new Error(`Video must be under ${VIDEO_CONSTRAINTS.maxSizeMB}MB (current: ${Math.round(sizeMB)}MB)`);
     }
 
-    // Format validation - more permissive
+    // Format validation
     const format = file.type?.toLowerCase();
-    console.log('File format:', format);
-    if (!format || !format.startsWith('video/')) {
-      throw new Error('Please select a valid video file');
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    console.log('File format:', format, 'Extension:', extension);
+
+    if (!format?.includes('video/mp4') || !VIDEO_CONSTRAINTS.formats.includes(extension)) {
+      throw new Error('Please select an MP4 video file');
     }
 
     try {
-      // Create secure temp directory
+      // Create secure temp directory for validation
       const tempDir = `${RNFS.CachesDirectoryPath}/VideoImport`;
       await RNFS.mkdir(tempDir);
       console.log('Created temp directory:', tempDir);
@@ -117,15 +129,14 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       // Validate file integrity
       const stats = await RNFS.stat(tempPath);
       console.log('File stats:', stats);
-      
-      // Basic integrity check
+
       if (!stats.size || stats.size !== file.size) {
-        throw new Error('File integrity check failed');
+        throw new Error('Video file appears to be corrupted');
       }
 
       // Clean up temp file
       await RNFS.unlink(tempPath);
-      console.log('Validation successful');
+      console.log('Format validation successful');
       return true;
     } catch (error) {
       console.error('Validation error:', error);
@@ -139,20 +150,20 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       ToastAndroid.show(message, ToastAndroid.LONG);
     }
     Alert.alert(
-      'Import Error',
+      'Video Import Error',
       message,
       [
-        { 
+        {
           text: 'Settings',
           onPress: () => {
-            // Open app settings if permission denied
-            if (message.includes('permissions')) {
-              // Implement opening settings
+            if (message.includes('permission')) {
+              // Open app settings if permission denied
+              // Implement based on platform
             }
           },
-          style: 'default'
+          style: 'default',
         },
-        { text: 'OK', style: 'cancel' }
+        { text: 'OK', style: 'cancel' },
       ],
       { cancelable: true }
     );
@@ -172,9 +183,9 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       setIsImporting(true);
       setProgress(0);
       onImportStart?.();
-      console.log('Starting video import...');
+      console.log('Starting nature video import...');
 
-      // Pick video file with specific configuration
+      // Configure file picker for videos
       console.log('Opening document picker...');
       const result = await DocumentPicker.pick({
         type: [DocumentPicker.types.video],
@@ -182,12 +193,12 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
         mode: 'open',
         allowMultiSelection: false,
       });
-      
+
       const file = result[0];
       console.log('Selected file:', file);
-      
-      // Validate before proceeding
-      await validateVideo(file);
+
+      // Validate video format and size
+      await validateVideoFormat(file);
 
       // Upload with progress tracking
       console.log('Starting video import with service...');
@@ -199,11 +210,10 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
           setProgress(progressPercent);
         }
       );
-      
+
       console.log('Import completed successfully:', video);
-      // Complete flow
       onImportComplete?.(video);
-      
+
       // Clear state
       setProgress(0);
     } catch (error) {
@@ -216,7 +226,6 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       }
     } finally {
       setIsImporting(false);
-      // Cleanup any remaining temp files
       cleanupTempFiles();
     }
   };
@@ -241,14 +250,19 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
             )}
           </View>
         ) : (
-          <Text style={styles.buttonText}>+</Text>
+          <Text style={styles.buttonText}>Import Nature Video</Text>
         )}
       </TouchableOpacity>
       <Text style={styles.helpText}>
-        {hasPermission 
-          ? `Tap to select video (${VALID_FORMATS.join(', ')}, max ${MAX_SIZE_MB}MB)`
-          : 'Storage permission required'}
+        {hasPermission
+          ? 'Select a vertical nature video (60 sec max)'
+          : 'Storage access required for nature videos'}
       </Text>
+      {hasPermission && (
+        <Text style={styles.infoText}>
+          Best for waterfalls, trees, and landscapes in portrait mode
+        </Text>
+      )}
     </View>
   );
 };
@@ -258,10 +272,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   button: {
-    width: 44,
+    width: 200,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#4CAF50', // Nature-themed green
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -282,9 +296,8 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 28,
-    fontWeight: '300',
-    marginTop: -2,
+    fontSize: 16,
+    fontWeight: '600',
   },
   loadingContainer: {
     alignItems: 'center',
@@ -299,6 +312,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  infoText: {
+    marginTop: 4,
+    fontSize: 11,
+    color: '#999',
+    fontStyle: 'italic',
+  },
 });
 
-export default VideoImport; 
+export default VideoImport;

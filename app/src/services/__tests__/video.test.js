@@ -21,9 +21,9 @@ describe('Video Service Performance Tests', () => {
         streams: [{
           width: 1080,
           height: 1920,
-          codec_name: 'h264'
-        }]
-      }))
+          codec_name: 'h264',
+        }],
+      })),
     });
   });
 
@@ -36,7 +36,7 @@ describe('Video Service Performance Tests', () => {
     const start = Date.now();
     const result = await videoService.validateVideo(TEST_VIDEO.uri);
     const duration = Date.now() - start;
-    
+
     expect(duration).toBeLessThan(1000);
     expect(result.status).toBe('success');
   });
@@ -45,7 +45,7 @@ describe('Video Service Performance Tests', () => {
     const start = Date.now();
     const result = await videoService.importVideo(TEST_VIDEO.uri);
     const duration = Date.now() - start;
-    
+
     expect(duration).toBeLessThan(3000);
     expect(result.status).toBe('success');
   });
@@ -54,26 +54,26 @@ describe('Video Service Performance Tests', () => {
     // Simulate validation error
     FFprobeKit.execute.mockResolvedValueOnce({
       getReturnCode: () => Promise.resolve(1),
-      getOutput: () => Promise.resolve('')
+      getOutput: () => Promise.resolve(''),
     });
 
     const start = Date.now();
     const result = await videoService.validateVideo(TEST_VIDEO.uri);
     const duration = Date.now() - start;
-    
+
     expect(duration).toBeLessThan(1000);
     expect(result.status).toBe('error');
   });
 
   it('handles rapid sequential imports', async () => {
-    const imports = Array(5).fill(TEST_VIDEO.uri).map(uri => 
+    const imports = Array(5).fill(TEST_VIDEO.uri).map(uri =>
       videoService.importVideo(uri)
     );
-    
+
     const start = Date.now();
     const results = await Promise.all(imports);
     const duration = Date.now() - start;
-    
+
     expect(duration).toBeLessThan(5000); // Should handle 5 imports in 5s
     results.forEach(result => {
       expect(result.status).toBe('success');
@@ -83,15 +83,15 @@ describe('Video Service Performance Tests', () => {
   it('maintains performance under memory pressure', async () => {
     // Simulate low memory condition
     const largeArray = new Array(1000000).fill('test');
-    
+
     const start = Date.now();
     const result = await videoService.importVideo(TEST_VIDEO.uri);
     const duration = Date.now() - start;
-    
+
     expect(duration).toBeLessThan(3000);
     expect(result.status).toBe('success');
-    
+
     // Cleanup
     largeArray.length = 0;
   });
-}); 
+});

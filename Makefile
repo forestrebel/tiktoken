@@ -247,9 +247,7 @@ firebase.health:
 		sleep 1; \
 		timeout=$$((timeout - 1)); \
 	done; \
-	echo "Error: Firebase emulators failed to start"; \
-	$(MAKE) firebase.logs; \
-	exit 1
+	echo "Error: Firebase emulators failed to start";
 
 # Comprehensive Firebase health check
 .PHONY: firebase.verify

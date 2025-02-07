@@ -8,22 +8,22 @@ import { videoService } from '../src/services';
 jest.mock('../src/services/video', () => ({
   videoService: {
     init: jest.fn().mockResolvedValue({ status: 'success' }),
-    importVideo: jest.fn().mockResolvedValue({ 
-      status: 'success', 
+    importVideo: jest.fn().mockResolvedValue({
+      status: 'success',
       data: {
         id: '1',
         filename: 'test.mp4',
-        created_at: new Date().toISOString()
-      }
+        created_at: new Date().toISOString(),
+      },
     }),
     getVideo: jest.fn().mockResolvedValue({
       status: 'success',
       data: {
         id: '1',
-        filename: 'test.mp4'
-      }
-    })
-  }
+        filename: 'test.mp4',
+      },
+    }),
+  },
 }));
 
 describe('Nature Creator Demo Flow', () => {
@@ -39,7 +39,7 @@ describe('Nature Creator Demo Flow', () => {
 
   it('completes core demo flow within 10 seconds', async () => {
     const startTime = Date.now();
-    
+
     // 1. Launch app (2s max)
     const app = renderer.create(<App />);
     expect(Date.now() - startTime).toBeLessThan(2000);
@@ -66,8 +66,8 @@ describe('Nature Creator Demo Flow', () => {
   it('maintains portrait mode for video playback', () => {
     const app = renderer.create(<App />);
     const tree = app.toJSON();
-    
+
     // Basic structural validation
     expect(tree).toBeTruthy();
   });
-}); 
+});

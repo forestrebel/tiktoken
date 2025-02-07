@@ -8,4 +8,4 @@ export async function initServices() {
   await videoService.init();
 }
 
-export { videoService, authService }; 
+export { videoService, authService };

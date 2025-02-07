@@ -16,7 +16,7 @@ export const ErrorCodes = {
 
   // Upload errors
   UPLOAD_FAILED: 'UPLOAD_001',
-  NETWORK_ERROR: 'UPLOAD_002'
+  NETWORK_ERROR: 'UPLOAD_002',
 };
 
 // Error class for video upload validation
@@ -35,7 +35,7 @@ export class VideoUploadError extends Error {
       code: this.code,
       message: this.message,
       details: this.details,
-      timestamp: this.timestamp
+      timestamp: this.timestamp,
     };
   }
 
@@ -61,7 +61,7 @@ export class VideoUploadError extends Error {
       {
         providedSize: size,
         maxSize: maxSize,
-        sizeInMB: (size / (1024 * 1024)).toFixed(2)
+        sizeInMB: (size / (1024 * 1024)).toFixed(2),
       }
     );
   }
@@ -80,7 +80,7 @@ export class VideoUploadError extends Error {
       `Invalid video dimensions. Required: ${expected.width}x${expected.height}`,
       {
         provided: { width, height },
-        expected: expected
+        expected: expected,
       }
     );
   }
@@ -91,7 +91,7 @@ export class VideoUploadError extends Error {
       `FPS must be between ${limits.min} and ${limits.max}`,
       {
         providedFps: fps,
-        limits: limits
+        limits: limits,
       }
     );
   }
@@ -102,7 +102,7 @@ export class VideoUploadError extends Error {
       `Video duration cannot exceed ${maxDuration} seconds`,
       {
         providedDuration: duration,
-        maxDuration: maxDuration
+        maxDuration: maxDuration,
       }
     );
   }
@@ -113,7 +113,7 @@ export class VideoUploadError extends Error {
       'Failed to upload video. Please try again.',
       {
         originalError: error.message,
-        stack: error.stack
+        stack: error.stack,
       }
     );
   }
@@ -124,8 +124,8 @@ export class VideoUploadError extends Error {
       'Network error occurred during upload',
       {
         originalError: error.message,
-        stack: error.stack
+        stack: error.stack,
       }
     );
   }
-} 
+}

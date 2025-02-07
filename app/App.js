@@ -38,18 +38,18 @@ function App() {
             headerTintColor: isDarkMode ? Colors.lighter : Colors.darker,
           }}
         >
-          <Stack.Screen 
-            name="Home" 
+          <Stack.Screen
+            name="Home"
             component={HomeScreen}
             options={{
-              title: 'Nature Collection'
+              title: 'Nature Collection',
             }}
           />
-          <Stack.Screen 
-            name="View" 
+          <Stack.Screen
+            name="View"
             component={ViewScreen}
             options={{
-              title: 'Preview'
+              title: 'Preview',
             }}
           />
         </Stack.Navigator>

@@ -39,7 +39,7 @@ function validateVideo(videoPath) {
       valid: true,
       dimensions: { width, height },
       size: stats.size,
-      aspect
+      aspect,
     };
   } catch (error) {
     if (error.message.includes('ffprobe')) {
@@ -67,4 +67,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = validateVideo; 
+module.exports = validateVideo;
