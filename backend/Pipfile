@@ -8,10 +8,24 @@ fastapi = "*"
 uvicorn = "*"
 aiohttp = "*"
 python-dotenv = "*"
+ffmpeg-python = "*"
+python-multipart = "*"
+httpx = "*"  # For async HTTP client
+aiofiles = "*"  # For async file operations
+pydantic = "*"  # For data validation
+python-magic = "*"  # For MIME type detection
+psutil = "*"  # For system monitoring
+supabase = "*"
+pydantic-settings = "*"
+firebase-admin = "*"  # For Firebase integration
 
 [dev-packages]
 pytest = "*"
 pytest-asyncio = "*"
+pytest-cov = "*"
+black = "*"
+isort = "*"
+pytest-mock = "*"
 
 [requires]
 python_version = "3.12"
