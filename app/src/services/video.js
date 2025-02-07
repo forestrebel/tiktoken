@@ -28,6 +28,23 @@ const DEMO_VIDEOS = {
   }
 };
 
+const APP_CACHE_DIR = `${RNFS.CachesDirectoryPath}/AppVideos`;
+
+// Ensure cache directory exists
+const ensureCacheDir = async () => {
+  try {
+    const exists = await RNFS.exists(APP_CACHE_DIR);
+    if (!exists) {
+      await RNFS.mkdir(APP_CACHE_DIR);
+    }
+  } catch (error) {
+    console.error('Failed to create cache directory:', error);
+  }
+};
+
+// Initialize cache on import
+ensureCacheDir();
+
 /**
  * Generate a unique signature for a file based on its properties
  * @param {string} filePath Path to the file
@@ -116,79 +133,50 @@ export const videoService = {
   },
 
   /**
-   * Import video from file
+   * Import video with progress tracking
    */
-  async importVideo(uri) {
+  async importVideo(uri, onProgress) {
     try {
-      // Check health before upload
-      const health = await this.checkHealth();
-      if (health.status !== 'ok') {
-        return {
-          status: 'error',
-          error: 'System unavailable',
-          suggestions: health.suggestions
-        };
-      }
+      // Generate unique filename
+      const timestamp = new Date().getTime();
+      const filename = `video_${timestamp}.mp4`;
+      const destPath = `${APP_CACHE_DIR}/${filename}`;
 
-      // Create form data
-      const formData = new FormData();
-      formData.append('file', {
-        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
-        type: 'video/mp4',
-        name: 'video.mp4'
-      });
-
-      // Upload to backend
-      const response = await fetch(`${API_URL}/upload`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json'
+      // Copy file to app's cache directory
+      if (uri.startsWith('file://')) {
+        await RNFS.copyFile(uri.replace('file://', ''), destPath);
+        // Simulate progress for local files
+        for (let i = 0; i <= 100; i += 10) {
+          onProgress?.(i / 100);
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
-      });
+      } else {
+        // Download remote file with progress
+        const result = await RNFS.downloadFile({
+          fromUrl: uri,
+          toFile: destPath,
+          progress: (response) => {
+            const progress = response.bytesWritten / response.contentLength;
+            onProgress?.(progress);
+          },
+        }).promise;
 
-      const result = await response.json();
-      
-      if (!response.ok) {
-        return {
-          status: 'error',
-          error: result.error || 'Upload failed',
-          specs: result.specs,
-          suggestions: result.suggestions
-        };
+        if (result.statusCode !== 200) {
+          throw new Error('Download failed');
+        }
       }
 
-      // Save video metadata
-      const video = {
-        id: result.id,
-        url: result.url,
-        specs: result.specs,
-        created_at: new Date().toISOString(),
-        state: 'pending'
-      };
-
-      const videos = JSON.parse(await AsyncStorage.getItem(VIDEOS_KEY) || '[]');
-      videos.unshift(video);
-      await AsyncStorage.setItem(VIDEOS_KEY, JSON.stringify(videos));
-
-      // Start polling for status
-      this.pollVideoStatus(video.id);
-
+      // Return video info
+      const stats = await RNFS.stat(destPath);
       return {
-        status: 'success',
-        data: video
+        uri: `file://${destPath}`,
+        filename,
+        size: stats.size,
+        timestamp,
       };
     } catch (error) {
-      console.error('Import failed:', error);
-      return {
-        status: 'error',
-        error: error.message || 'Import failed',
-        suggestions: [
-          'Check your internet connection',
-          'Try uploading a different video',
-          'The server may be experiencing issues'
-        ]
-      };
+      console.error('Import error:', error);
+      throw new Error('Failed to import video');
     }
   },
 
@@ -536,33 +524,30 @@ export const videoService = {
   },
 
   /**
-   * Clean up temporary files
+   * Clean up old videos
    */
   async cleanup() {
     try {
-      const videos = await this.getVideos();
-      if (videos.status === 'success') {
-        const validFiles = new Set(videos.data.map(v => v.filename));
-        const validThumbs = new Set(videos.data.map(v => v.thumbnail));
+      const files = await RNFS.readDir(APP_CACHE_DIR);
+      const now = new Date();
+
+      for (const file of files) {
+        const stats = await RNFS.stat(file.path);
+        const ageHours = (now - new Date(stats.mtime)) / (1000 * 60 * 60);
         
-        // Clean up orphaned video files
-        const files = await RNFS.readDir(VIDEO_DIR);
-        for (const file of files) {
-          if (!validFiles.has(file.name)) {
-            await RNFS.unlink(file.path);
-          }
-        }
-        
-        // Clean up orphaned thumbnails
-        const thumbs = await RNFS.readDir(THUMBNAIL_DIR);
-        for (const thumb of thumbs) {
-          if (!validThumbs.has(thumb.name)) {
-            await RNFS.unlink(thumb.path);
-          }
+        if (ageHours > 24) { // Remove files older than 24 hours
+          await RNFS.unlink(file.path);
         }
       }
     } catch (error) {
-      console.error('Cleanup error:', error);
+      console.warn('Cleanup error:', error);
     }
   }
+};
+
+// Export constants for consistent validation
+export const VIDEO_CONSTANTS = {
+  MAX_SIZE_MB: 100,
+  VALID_FORMATS: ['mp4', 'mov', 'quicktime'],
+  MAX_DURATION_SEC: 300,
 }; 

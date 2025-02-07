@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, Dimensions } from 'react-native';
-import Video from 'react-native-video';
+import VideoPlayer from '../components/VideoPlayer';
 import { videoService } from '../services';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -17,22 +17,27 @@ export default function ViewScreen({ route }) {
 
   useEffect(() => {
     const loadVideo = async () => {
-      // Check if this is a demo video
-      if (videoId.startsWith('demo')) {
-        const result = await videoService.getDemoVideo(videoId);
-        if (result.status === 'success') {
-          setVideo(result.data);
+      try {
+        // Check if this is a demo video
+        if (videoId.startsWith('demo')) {
+          const result = await videoService.getDemoVideo(videoId);
+          if (result.status === 'success') {
+            setVideo(result.data);
+          } else {
+            setError('Failed to load demo video');
+          }
         } else {
-          setError('Failed to load demo video');
+          // Load regular video
+          const result = await videoService.getVideo(videoId);
+          if (result.status === 'success') {
+            setVideo(result.data);
+          } else {
+            setError('Failed to load video');
+          }
         }
-      } else {
-        // Load regular video
-        const result = await videoService.getVideo(videoId);
-        if (result.status === 'success') {
-          setVideo(result.data);
-        } else {
-          setError('Failed to load video');
-        }
+      } catch (err) {
+        console.error('Failed to load video:', err);
+        setError('Failed to load video');
       }
     };
     loadVideo();
@@ -62,16 +67,12 @@ export default function ViewScreen({ route }) {
   // For demo videos, use a bundled asset
   const source = video.id.startsWith('demo') 
     ? require('../assets/demo1.mp4')  // This will be our demo video
-    : { uri: videoService.getVideoPath(video.filename) };
+    : { uri: video.uri || videoService.getVideoPath(video.filename) };
 
   return (
     <View style={styles.container}>
-      <Video
-        source={source}
-        style={styles.video}
-        resizeMode="cover"
-        repeat={true}
-        controls={true}
+      <VideoPlayer
+        url={source.uri}
         onError={handleError}
       />
     </View>
@@ -84,11 +85,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  video: {
-    width: SCREEN_WIDTH,
-    height: VIDEO_HEIGHT,
-    backgroundColor: '#000',
   },
   loadingText: {
     color: '#fff',

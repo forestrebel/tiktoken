@@ -7,11 +7,13 @@ import {
   Alert,
   ToastAndroid,
   Platform,
-  Vibration
+  Vibration,
+  FlatList,
+  Dimensions,
+  ActivityIndicator
 } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import { videoService } from '../services/video';
-import VideoGrid from '../components/VideoGrid';
 import Animated, {
   useAnimatedStyle,
   withSpring,
@@ -26,6 +28,13 @@ const SPRING_CONFIG = {
   damping: 15,
   stiffness: 150
 };
+
+const { width } = Dimensions.get('window');
+const COLUMN_COUNT = 2;
+const GRID_PADDING = 8;
+const ITEM_MARGIN = 8;
+const ITEM_WIDTH = (width - (GRID_PADDING * 2) - (ITEM_MARGIN * (COLUMN_COUNT - 1))) / COLUMN_COUNT;
+const ITEM_HEIGHT = (ITEM_WIDTH * 16) / 9;
 
 const showToast = (message) => {
   if (Platform.OS === 'android') {
@@ -76,118 +85,110 @@ const ImportButton = ({ onPress, isLoading, progress }) => {
 
 const HomeScreen = ({ navigation }) => {
   const [videos, setVideos] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingVideoId, setLoadingVideoId] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState('');
 
-  // Reset and load videos on mount
+  // Load videos on mount
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Reset everything on fresh start
         await videoService.init();
-        // Load empty video list
         const result = await videoService.getVideos();
         if (result.status === 'success') {
           setVideos(result.data || []);
+        } else {
+          console.error('Failed to load videos:', result.error);
         }
       } catch (error) {
-        console.error('Failed to initialize app:', error);
+        console.error('Failed to initialize:', error);
       }
     };
     
     initializeApp();
   }, []);
 
-  const handleImportPress = useCallback(async () => {
+  const handleImport = async () => {
+    if (importing) return;
+    
     try {
-      setIsLoading(true);
+      setImporting(true);
       setImportProgress('Selecting video...');
 
-      // Pick video file
-      const result = await DocumentPicker.pickSingle({
-        type: DocumentPicker.types.video,
+      // Open document picker
+      const result = await DocumentPicker.pick({
+        type: [DocumentPicker.types.video],
         copyTo: 'cachesDirectory'
       });
 
-      const uri = result.fileCopyUri || result.uri;
-      setImportProgress('Validating format...');
-      
-      // Validate video first
-      const validation = await videoService.validateVideo(uri);
-      if (validation.status === 'error') {
-        Alert.alert(
-          'Invalid Video Format',
-          validation.error,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'View Requirements',
-              onPress: () => Alert.alert(
-                'Video Requirements',
-                validation.suggestions.join('\n\n'),
-                [{ text: 'Got It' }]
-              )
-            }
-          ]
-        );
-        return;
+      if (!result || !result[0]) {
+        throw new Error('No video selected');
       }
 
-      // Show loading state
-      const tempId = Date.now().toString();
-      const tempVideo = {
-        id: tempId,
-        filename: 'importing.mp4',
+      const videoUri = result[0].fileCopyUri || result[0].uri;
+      if (!videoUri) {
+        throw new Error('Invalid video file');
+      }
+
+      setImportProgress('Validating format...');
+      console.log('Validating video:', videoUri);
+
+      // Quick validation
+      const validation = await videoService.validateVideo(videoUri);
+      console.log('Validation result:', validation);
+      
+      if (validation.status === 'error') {
+        setImportProgress('');
+        throw new Error(validation.error || 'Invalid video format');
+      }
+
+      setImportProgress('Importing video...');
+      console.log('Importing video...');
+      
+      const importResult = await videoService.importVideo(
+        videoUri,
+        (progress) => setImportProgress(`Importing: ${Math.round(progress * 100)}%`)
+      );
+      
+      console.log('Import result:', importResult);
+
+      if (!importResult || importResult.status === 'error') {
+        throw new Error(importResult?.error || 'Failed to import video');
+      }
+
+      // Add to collection
+      const newVideo = {
+        id: Date.now().toString(),
+        uri: importResult.uri,
+        filename: importResult.filename,
         created_at: new Date().toISOString()
       };
-      setVideos(prev => [tempVideo, ...prev]);
-      setLoadingVideoId(tempId);
-      setImportProgress('Processing video...');
 
-      // Import video
-      const importResult = await videoService.importVideo(uri);
+      setVideos(prev => [newVideo, ...prev]);
+      showToast('Video imported successfully');
       
-      // Update UI based on result
-      if (importResult.status === 'success') {
-        setVideos(prev => {
-          const filtered = prev.filter(v => v.id !== tempId);
-          return [importResult.data, ...filtered];
-        });
-        Vibration.vibrate([0, 50, 50, 50]); // Success haptic
-        showToast('Video imported successfully');
-        
-        // Navigate to preview
-        navigation.navigate('View', { videoId: importResult.data.id });
-      } else {
-        setVideos(prev => prev.filter(v => v.id !== tempId));
-        Alert.alert(
-          'Import Failed',
-          importResult.error,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Try Again', onPress: handleImportPress }
-          ]
-        );
-      }
-
+      // Navigate to preview
+      navigation.navigate('View', { videoId: newVideo.id });
+      
     } catch (err) {
+      console.error('Import error:', err);
       if (!DocumentPicker.isCancel(err)) {
         Alert.alert(
-          'Import Error',
-          'Failed to import video. Please try again.',
+          'Import Failed',
+          err.message || 'Failed to import video. Please try again.',
           [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Try Again', onPress: handleImportPress }
+            { text: 'OK' },
+            { 
+              text: 'Try Again',
+              onPress: handleImport
+            }
           ]
         );
       }
     } finally {
-      setIsLoading(false);
-      setLoadingVideoId(null);
+      setImporting(false);
       setImportProgress('');
     }
-  }, [navigation]);
+  };
 
   const handleVideoPress = useCallback((video) => {
     Vibration.vibrate(50); // Haptic feedback
@@ -210,24 +211,11 @@ const HomeScreen = ({ navigation }) => {
                 setVideos([]);
                 showToast('Library cleared successfully');
               } else {
-                Alert.alert(
-                  'Reset Failed',
-                  result.error,
-                  [
-                    { text: 'OK' },
-                    {
-                      text: 'View Suggestions',
-                      onPress: () => Alert.alert(
-                        'Troubleshooting',
-                        result.suggestions.join('\n\n')
-                      )
-                    }
-                  ]
-                );
+                throw new Error(result.error);
               }
             } catch (error) {
               console.error('Reset failed:', error);
-              Alert.alert('Reset Failed', 'Failed to reset video library');
+              Alert.alert('Reset Failed', error.message || 'Failed to reset video library');
             }
           }
         }
@@ -235,29 +223,54 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
+  const renderVideo = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.gridItem}
+      onPress={() => handleVideoPress(item)}
+    >
+      <View style={styles.thumbnail}>
+        <Text style={styles.thumbnailText}>
+          {new Date(item.created_at).toLocaleDateString()}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <ImportButton
-          onPress={handleImportPress}
-          isLoading={isLoading}
+          onPress={handleImport}
+          isLoading={importing}
           progress={importProgress}
         />
-        <TouchableOpacity
-          style={styles.resetButton}
-          onPress={handleReset}
-        >
-          <Text style={styles.resetButtonText}>
-            Clear Library {videos.length > 0 ? ` (${videos.length})` : ''}
-          </Text>
-        </TouchableOpacity>
+        {videos.length > 0 && (
+          <TouchableOpacity
+            style={styles.resetButton}
+            onPress={handleReset}
+          >
+            <Text style={styles.resetButtonText}>
+              Clear Library ({videos.length})
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      <VideoGrid
-        videos={videos}
-        onVideoPress={handleVideoPress}
-        loadingVideoId={loadingVideoId}
-      />
+      {videos.length > 0 ? (
+        <FlatList
+          data={videos}
+          renderItem={renderVideo}
+          keyExtractor={item => item.id}
+          numColumns={COLUMN_COUNT}
+          contentContainerStyle={styles.grid}
+        />
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateText}>
+            No videos yet. Import one to get started!
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -304,6 +317,37 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     opacity: 0.9,
+  },
+  grid: {
+    padding: GRID_PADDING,
+  },
+  gridItem: {
+    width: ITEM_WIDTH,
+    height: ITEM_HEIGHT,
+    marginRight: ITEM_MARGIN,
+    marginBottom: ITEM_MARGIN,
+  },
+  thumbnail: {
+    flex: 1,
+    backgroundColor: '#222',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbnailText: {
+    color: '#666',
+    fontSize: 12,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyStateText: {
+    color: '#666',
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 
