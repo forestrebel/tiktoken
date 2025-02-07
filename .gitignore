@@ -1,62 +1,57 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
 
-# Virtual Environment
+# Testing
+coverage/
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# Environment
 .env
-.venv
-venv/
-ENV/
+.env.local
+.env.*.local
+!.env.example
+
+# Build
+dist/
+build/
+*.tsbuildinfo
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
-.DS_Store
 
-# Project specific
-.env
-.env.*
-!.env.example
-docker-volumes/
-.coverage
-htmlcov/ 
-.vercel
-
-# Node
-node_modules/
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Firebase
-firebase-credentials.json
-**/firebase-credentials.json
-
-# Logs
-*.log
 firebase-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Mobile
+.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Secrets
+.secrets/
+
+# Local development
+.DS_Store
+Thumbs.db
