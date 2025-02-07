@@ -55,3 +55,4 @@ pids/
 # Local development
 .DS_Store
 Thumbs.db
+app/env/.env*
