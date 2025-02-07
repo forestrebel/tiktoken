@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
 import { Platform } from 'react-native';
 import { FFmpegKit, FFprobeKit, FFmpegKitConfig } from 'ffmpeg-kit-react-native';
+import { getStorage, ref, uploadBytes, uploadBytesResumable } from 'firebase/storage';
+import { auth } from '../config/firebase';
 
 const API_URL = process.env.API_URL || 'http://localhost:5000';
 const VIDEOS_KEY = '@videos';
@@ -10,6 +12,21 @@ const THUMBNAIL_DIR = `${RNFS.DocumentDirectoryPath}/thumbnails`;
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const THUMBNAIL_SIZE = '320x180'; // 16:9 thumbnail size
 const STATUS_POLL_INTERVAL = 2000; // 2 seconds
+
+// Constants for video validation
+const VIDEO_CONSTRAINTS = {
+  maxSizeMB: 100,
+  minDurationSec: 1,
+  maxDurationSec: 300,
+  aspectRatio: {
+    width: 9,
+    height: 16
+  },
+  resolution: {
+    width: 720,
+    height: 1280
+  }
+};
 
 // Cache for validation results
 const validationCache = new Map();
@@ -44,6 +61,9 @@ const ensureCacheDir = async () => {
 
 // Initialize cache on import
 ensureCacheDir();
+
+// Active upload task reference
+let currentUploadTask = null;
 
 /**
  * Generate a unique signature for a file based on its properties
@@ -137,68 +157,29 @@ export const videoService = {
    */
   async importVideo(uri, onProgress) {
     try {
-      console.log('Starting video import for URI:', uri);
-      
-      // Generate unique filename
-      const timestamp = new Date().getTime();
-      const filename = `video_${timestamp}.mp4`;
-      const destPath = `${APP_CACHE_DIR}/${filename}`;
-      
-      console.log('Destination path:', destPath);
+      // Get file info
+      const fileInfo = await RNFS.stat(uri);
+      console.log('Importing video:', fileInfo);
 
-      // Ensure cache directory exists
-      await ensureCacheDir();
-
-      // Copy file to app's cache directory
-      if (uri.startsWith('file://')) {
-        console.log('Copying local file...');
-        await RNFS.copyFile(uri.replace('file://', ''), destPath);
-        // Simulate progress for local files
-        for (let i = 0; i <= 100; i += 10) {
-          onProgress?.(i / 100);
-          await new Promise(resolve => setTimeout(resolve, 50));
-        }
-      } else {
-        console.log('Downloading remote file...');
-        // Download remote file with progress
-        const result = await RNFS.downloadFile({
-          fromUrl: uri,
-          toFile: destPath,
-          progress: (response) => {
-            const progress = response.bytesWritten / response.contentLength;
-            onProgress?.(progress);
-          },
-        }).promise;
-
-        if (result.statusCode !== 200) {
-          throw new Error('Download failed');
-        }
+      // Validate file size
+      const sizeMB = fileInfo.size / (1024 * 1024);
+      if (sizeMB > VIDEO_CONSTRAINTS.maxSizeMB) {
+        throw new Error(`Video must be under ${VIDEO_CONSTRAINTS.maxSizeMB}MB`);
       }
 
-      // Verify the file exists and get stats
-      const exists = await RNFS.exists(destPath);
-      if (!exists) {
-        throw new Error('File not found after copy/download');
-      }
+      // Copy to cache directory
+      const cacheDir = await this.ensureCacheDirectory();
+      const fileName = uri.split('/').pop();
+      const cachePath = `${cacheDir}/${fileName}`;
 
-      const stats = await RNFS.stat(destPath);
-      console.log('File stats after import:', stats);
-
-      // Create external storage directory if needed
-      const externalDir = '/storage/emulated/0/Android/data/com.tiktoken/files/videos';
-      await RNFS.mkdir(externalDir);
-      
-      // Copy to external storage
-      const externalPath = `${externalDir}/${filename}`;
-      await RNFS.copyFile(destPath, externalPath);
-      console.log('Copied to external storage:', externalPath);
+      await RNFS.copyFile(uri, cachePath);
+      console.log('Video copied to cache:', cachePath);
 
       return {
-        uri: `file://${destPath}`,
-        filename,
-        size: stats.size,
-        timestamp,
-        externalUri: `file://${externalPath}`
+        uri: cachePath,
+        fileName,
+        size: fileInfo.size,
+        type: 'video/mp4'
       };
     } catch (error) {
       console.error('Import error:', error);
@@ -555,6 +536,150 @@ export const videoService = {
   async cleanup() {
     try {
       const files = await RNFS.readDir(APP_CACHE_DIR);
+      const now = new Date();
+
+      for (const file of files) {
+        const stats = await RNFS.stat(file.path);
+        const ageHours = (now - new Date(stats.mtime)) / (1000 * 60 * 60);
+        
+        if (ageHours > 24) { // Remove files older than 24 hours
+          await RNFS.unlink(file.path);
+        }
+      }
+    } catch (error) {
+      console.warn('Cleanup error:', error);
+    }
+  },
+
+  async ensureCacheDirectory() {
+    try {
+      const cacheDir = `${RNFS.CachesDirectoryPath}/Videos`;
+      const exists = await RNFS.exists(cacheDir);
+      if (!exists) {
+        await RNFS.mkdir(cacheDir);
+      }
+      return cacheDir;
+    } catch (error) {
+      console.error('Failed to create cache directory:', error);
+      throw new Error('Storage initialization failed');
+    }
+  },
+
+  async uploadVideo(uri, metadata, onProgress) {
+    try {
+      // Validate user auth
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        throw new Error('Authentication required');
+      }
+
+      // Get file info
+      const fileInfo = await RNFS.stat(uri);
+      console.log('Uploading video:', fileInfo);
+
+      // Read file as blob
+      const blob = await RNFS.readFile(uri, 'base64');
+      const bytes = Buffer.from(blob, 'base64');
+
+      // Prepare storage reference
+      const storage = getStorage();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
+      const videoRef = ref(storage, `users/${userId}/videos/${fileName}`);
+
+      // Create resumable upload
+      currentUploadTask = uploadBytesResumable(
+        videoRef,
+        bytes,
+        {
+          contentType: 'video/mp4',
+          customMetadata: {
+            ...metadata,
+            userId
+          }
+        }
+      );
+
+      // Track progress
+      return new Promise((resolve, reject) => {
+        currentUploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress = snapshot.bytesTransferred / snapshot.totalBytes;
+            onProgress?.(progress);
+          },
+          (error) => {
+            console.error('Upload error:', error);
+            
+            // Handle specific error cases
+            switch (error.code) {
+              case 'storage/unauthorized':
+                reject(new Error('Not authorized to upload'));
+                break;
+              case 'storage/canceled':
+                reject(new Error('Upload cancelled'));
+                break;
+              case 'storage/network-error':
+                reject(new Error('Network error - check connection'));
+                break;
+              default:
+                reject(new Error('Upload failed: ' + error.message));
+            }
+          },
+          async () => {
+            try {
+              // Clean up cache file
+              await RNFS.unlink(uri);
+              
+              // Return upload result
+              resolve({
+                path: currentUploadTask.snapshot.ref.fullPath,
+                size: fileInfo.size,
+                metadata: metadata
+              });
+            } catch (error) {
+              console.warn('Cleanup error:', error);
+              // Still resolve since upload succeeded
+              resolve({
+                path: currentUploadTask.snapshot.ref.fullPath,
+                size: fileInfo.size,
+                metadata: metadata
+              });
+            } finally {
+              currentUploadTask = null;
+            }
+          }
+        );
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw new Error('Failed to upload video: ' + error.message);
+    }
+  },
+
+  async cancelUpload() {
+    if (currentUploadTask) {
+      try {
+        await currentUploadTask.cancel();
+        currentUploadTask = null;
+      } catch (error) {
+        console.error('Cancel error:', error);
+        throw new Error('Failed to cancel upload');
+      }
+    }
+  },
+
+  async getUploadProgress() {
+    if (!currentUploadTask) {
+      return 0;
+    }
+    const snapshot = await currentUploadTask.snapshot;
+    return snapshot.bytesTransferred / snapshot.totalBytes;
+  },
+
+  async cleanupCache() {
+    try {
+      const cacheDir = await this.ensureCacheDirectory();
+      const files = await RNFS.readDir(cacheDir);
       const now = new Date();
 
       for (const file of files) {

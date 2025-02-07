@@ -2,37 +2,43 @@ import { getStorage, ref, uploadBytes } from 'firebase/storage';
 import { auth } from '../config/firebase';
 import { VideoUploadError } from './errors';
 
-export interface VideoMetadata {
-  width: number;
-  height: number;
-  fps: number;
-  duration: number;
-}
+/**
+ * @typedef {Object} VideoMetadata
+ * @property {number} width - Video width in pixels
+ * @property {number} height - Video height in pixels
+ * @property {number} fps - Frames per second
+ * @property {number} duration - Duration in seconds
+ */
 
-export interface VideoValidationLimits {
-  maxSize: number;
-  width: number;
-  height: number;
-  minFps: number;
-  maxFps: number;
-  maxDuration: number;
-}
+/**
+ * @typedef {Object} VideoValidationLimits
+ * @property {number} maxSize - Maximum file size in bytes
+ * @property {number} width - Required video width
+ * @property {number} height - Required video height
+ * @property {number} minFps - Minimum frames per second
+ * @property {number} maxFps - Maximum frames per second
+ * @property {number} maxDuration - Maximum duration in seconds
+ */
 
 export class VideoUploader {
-  private readonly limits: VideoValidationLimits = {
-    maxSize: 100 * 1024 * 1024, // 100MB
-    width: 720,
-    height: 1280,
-    minFps: 29.97,
-    maxFps: 30,
-    maxDuration: 60
-  };
-
-  constructor(limits?: Partial<VideoValidationLimits>) {
-    this.limits = { ...this.limits, ...limits };
+  constructor(limits = {}) {
+    this.limits = {
+      maxSize: 100 * 1024 * 1024, // 100MB
+      width: 720,
+      height: 1280,
+      minFps: 29.97,
+      maxFps: 30,
+      maxDuration: 60,
+      ...limits
+    };
   }
 
-  private validateMetadata(metadata: VideoMetadata): void {
+  /**
+   * Validates video metadata against limits
+   * @param {VideoMetadata} metadata 
+   * @throws {VideoUploadError}
+   */
+  validateMetadata(metadata) {
     // Check required fields
     const missingFields = [];
     if (!metadata.width) missingFields.push('width');
@@ -73,7 +79,12 @@ export class VideoUploader {
     }
   }
 
-  private validateFile(file: File): void {
+  /**
+   * Validates video file properties
+   * @param {File} file 
+   * @throws {VideoUploadError}
+   */
+  validateFile(file) {
     if (file.type !== 'video/mp4') {
       throw VideoUploadError.invalidFileType(file.type);
     }
@@ -83,10 +94,12 @@ export class VideoUploader {
     }
   }
 
-  private transformMetadataForStorage(metadata: VideoMetadata): {
-    contentType: string;
-    customMetadata: Record<string, string>;
-  } {
+  /**
+   * Transforms metadata for Firebase Storage
+   * @param {VideoMetadata} metadata 
+   * @returns {{contentType: string, customMetadata: Object}}
+   */
+  transformMetadataForStorage(metadata) {
     // Validate before transformation
     this.validateMetadata(metadata);
 
@@ -102,13 +115,24 @@ export class VideoUploader {
     };
   }
 
-  private generateFileName(): string {
+  /**
+   * Generates a unique filename for video storage
+   * @returns {string}
+   */
+  generateFileName() {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 15);
     return `${timestamp}-${random}.mp4`;
   }
 
-  async uploadVideo(file: File, metadata: VideoMetadata): Promise<string> {
+  /**
+   * Uploads a video file to Firebase Storage
+   * @param {File} file - The video file to upload
+   * @param {VideoMetadata} metadata - Video metadata
+   * @returns {Promise<string>} The storage path of the uploaded video
+   * @throws {VideoUploadError}
+   */
+  async uploadVideo(file, metadata) {
     // Validate user authentication
     const userId = auth.currentUser?.uid;
     if (!userId) {

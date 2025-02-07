@@ -1,14 +1,14 @@
-import { VideoUploader, VideoMetadata } from '../videoUploader';
+import { VideoUploader } from '../videoUploader';
 
 describe('VideoUploader', () => {
-  let uploader: VideoUploader;
+  let uploader;
 
   beforeEach(() => {
     uploader = new VideoUploader();
   });
 
   describe('metadata validation', () => {
-    const validMetadata: VideoMetadata = {
+    const validMetadata = {
       width: 720,
       height: 1280,
       fps: 30,
@@ -17,7 +17,7 @@ describe('VideoUploader', () => {
 
     it('accepts valid metadata', () => {
       expect(() => {
-        uploader['validateMetadata'](validMetadata);
+        uploader.validateMetadata(validMetadata);
       }).not.toThrow();
     });
 
@@ -29,7 +29,7 @@ describe('VideoUploader', () => {
       };
 
       expect(() => {
-        uploader['validateMetadata'](invalidMetadata);
+        uploader.validateMetadata(invalidMetadata);
       }).toThrow('Invalid video dimensions');
     });
 
@@ -40,7 +40,7 @@ describe('VideoUploader', () => {
       };
 
       expect(() => {
-        uploader['validateMetadata'](invalidMetadata);
+        uploader.validateMetadata(invalidMetadata);
       }).toThrow('FPS must be between');
     });
 
@@ -51,7 +51,7 @@ describe('VideoUploader', () => {
       };
 
       expect(() => {
-        uploader['validateMetadata'](invalidMetadata);
+        uploader.validateMetadata(invalidMetadata);
       }).toThrow('Video duration cannot exceed');
     });
 
@@ -59,10 +59,10 @@ describe('VideoUploader', () => {
       const invalidMetadata = {
         ...validMetadata,
         width: undefined
-      } as any;
+      };
 
       expect(() => {
-        uploader['validateMetadata'](invalidMetadata);
+        uploader.validateMetadata(invalidMetadata);
       }).toThrow('Video dimensions are required');
     });
 
@@ -70,10 +70,10 @@ describe('VideoUploader', () => {
       const invalidMetadata = {
         ...validMetadata,
         height: undefined
-      } as any;
+      };
 
       expect(() => {
-        uploader['validateMetadata'](invalidMetadata);
+        uploader.validateMetadata(invalidMetadata);
       }).toThrow('Video dimensions are required');
     });
 
@@ -81,10 +81,10 @@ describe('VideoUploader', () => {
       const invalidMetadata = {
         ...validMetadata,
         fps: undefined
-      } as any;
+      };
 
       expect(() => {
-        uploader['validateMetadata'](invalidMetadata);
+        uploader.validateMetadata(invalidMetadata);
       }).toThrow('Video FPS is required');
     });
 
@@ -92,10 +92,10 @@ describe('VideoUploader', () => {
       const invalidMetadata = {
         ...validMetadata,
         duration: undefined
-      } as any;
+      };
 
       expect(() => {
-        uploader['validateMetadata'](invalidMetadata);
+        uploader.validateMetadata(invalidMetadata);
       }).toThrow('Video duration is required');
     });
   });
@@ -104,14 +104,14 @@ describe('VideoUploader', () => {
     it('accepts valid MP4 file', () => {
       const file = new File(['test'], 'test.mp4', { type: 'video/mp4' });
       expect(() => {
-        uploader['validateFile'](file);
+        uploader.validateFile(file);
       }).not.toThrow();
     });
 
     it('rejects non-MP4 file', () => {
       const file = new File(['test'], 'test.txt', { type: 'text/plain' });
       expect(() => {
-        uploader['validateFile'](file);
+        uploader.validateFile(file);
       }).toThrow('Only MP4 videos are supported');
     });
 
@@ -121,13 +121,13 @@ describe('VideoUploader', () => {
       Object.defineProperty(file, 'size', { value: 101 * 1024 * 1024 });
 
       expect(() => {
-        uploader['validateFile'](file);
+        uploader.validateFile(file);
       }).toThrow('File size cannot exceed');
     });
   });
 
   describe('metadata transformation', () => {
-    const validMetadata: VideoMetadata = {
+    const validMetadata = {
       width: 720,
       height: 1280,
       fps: 30,
@@ -135,7 +135,7 @@ describe('VideoUploader', () => {
     };
 
     it('transforms metadata to storage format', () => {
-      const transformed = uploader['transformMetadataForStorage'](validMetadata);
+      const transformed = uploader.transformMetadataForStorage(validMetadata);
       
       expect(transformed).toEqual({
         contentType: 'video/mp4',
@@ -155,12 +155,12 @@ describe('VideoUploader', () => {
       };
 
       expect(() => {
-        uploader['transformMetadataForStorage'](invalidMetadata);
+        uploader.transformMetadataForStorage(invalidMetadata);
       }).toThrow('Invalid video dimensions');
     });
 
     it('maintains type safety in transformation', () => {
-      const transformed = uploader['transformMetadataForStorage'](validMetadata);
+      const transformed = uploader.transformMetadataForStorage(validMetadata);
       
       // Check that all values are strings
       Object.values(transformed.customMetadata).forEach(value => {
