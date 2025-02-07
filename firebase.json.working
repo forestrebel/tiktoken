@@ -24,12 +24,8 @@
   "app-distribution": {
     "android": {
       "app": "1:785506674013:android:13b7bc99b37487284874b4",
-      "public_links": true,
-      "release-notes": "Public testing build - Available for grading",
-      "distribution": {
-        "public_access": true,
-        "link_validity_duration": "30d"
-      }
+      "groups": ["testers", "developers"],
+      "release-notes": "Latest build with Firebase integration"
     }
   }
 } 

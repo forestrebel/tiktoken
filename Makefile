@@ -1,5 +1,5 @@
 # Development environment management
-.PHONY: dev test deploy clean validate secrets demo reset install-deps setup-android
+.PHONY: dev test deploy clean validate secrets demo reset install-deps setup-android apk.build apk.dist firebase.dist test.e2e
 
 # Variables
 ANDROID_DIR = app/android
@@ -10,58 +10,33 @@ JAVA_HOME ?= /usr/lib/jvm/java-11-openjdk-amd64
 SHELL := /bin/bash
 PROJECT_NAME := tiktoken
 APP_DIR := app
-VERSION_CODE := $(shell date +%Y%m%d%H)
+
+# Docker compose command
+DOCKER_COMPOSE = docker compose -f docker-compose.yml -f docker-compose.test.yml
 
 # Colors for output
 GREEN := \033[0;32m
 RED := \033[0;31m
 NC := \033[0m
 
-# Test configuration
-TEST_TYPES := unit integration e2e
-TEST_OUTPUT_DIR := test-results
-JEST_FLAGS := --silent --colors
-
-# Emulator configuration
-EMULATOR_NAME := Pixel7Pro
-EMULATOR_PORT := 5554
-
 # Demo environment
-demo: demo.clean demo.setup demo.test demo.run
-	@echo "$(GREEN)Demo environment ready$(NC)"
+demo: check-deps install-deps setup-android
+	@echo "Starting demo environment..."
+	./scripts/demo.sh &
+	@echo "Demo started in background. Use 'make reset' to reset the environment."
 
-demo.clean:
-	@echo "$(GREEN)Cleaning environment...$(NC)"
-	@cd $(APP_DIR) && rm -rf android/app/build android/.gradle
-	@rm -rf /tmp/metro-* || true
-	@adb kill-server || true
-	@adb devices | grep emulator | cut -f1 | while read line; do adb -s $$line emu kill; done || true
-	@pkill -f "react-native" || true
-	@pkill -f "metro" || true
+reset: check-deps
+	@echo "Resetting demo environment..."
+	./scripts/demo.sh reset
 
-demo.setup: check-env
-	@echo "$(GREEN)Setting up demo environment...$(NC)"
-	@cd $(APP_DIR) && yarn install
-	@cd $(APP_DIR)/android && ./gradlew clean
-	@$(ANDROID_HOME)/emulator/emulator -avd $(EMULATOR_NAME) -no-window -no-snapshot -no-audio -gpu swiftshader_indirect &
-	@adb wait-for-device
-	@until adb shell getprop sys.boot_completed | grep -q '1'; do sleep 1; done
-
-check-env:
-	@command -v node >/dev/null 2>&1 || { echo "node is required" >&2; exit 1; }
-	@command -v yarn >/dev/null 2>&1 || { echo "yarn is required" >&2; exit 1; }
-	@command -v adb >/dev/null 2>&1 || { echo "adb is required" >&2; exit 1; }
-	@test -d "$(ANDROID_HOME)" || { echo "Android SDK not found" >&2; exit 1; }
-
-demo.test:
-	@echo "$(GREEN)Running critical tests...$(NC)"
-	@cd $(APP_DIR) && NODE_ENV=test yarn test src/services/__tests__/minimal.test.js src/services/__tests__/openshot.test.js
-
-demo.run:
-	@echo "$(GREEN)Starting demo app...$(NC)"
-	@cd $(APP_DIR) && yarn start --reset-cache &
-	@sleep 5
-	@cd $(APP_DIR) && yarn android
+# Kill the demo environment
+demo.stop:
+	@echo "Stopping demo environment..."
+	pkill -f "emulator" || true
+	pkill -f "react-native start" || true
+	adb kill-server || true
+	rm -rf $(TMPDIR)/metro-* 2>/dev/null || true
+	@echo "Demo environment stopped."
 
 # Dependencies and setup
 install-deps:
@@ -95,98 +70,17 @@ setup: check-deps
 	cd ai && pip install -r requirements.txt
 
 # Testing
-test: test.clean test.setup $(addprefix test., $(TEST_TYPES))
-	@echo "$(GREEN)All tests completed$(NC)"
+test: test.backend test.mobile test.ai
 
-test.clean:
-	@echo "$(GREEN)Cleaning test environment...$(NC)"
-	@rm -rf $(TEST_OUTPUT_DIR)
-	@cd $(APP_DIR) && rm -rf android/app/build android/.gradle
-	@rm -rf /tmp/metro-* || true
-	@mkdir -p $(TEST_OUTPUT_DIR)
-	@adb kill-server || true
-	@adb devices | grep emulator | cut -f1 | while read line; do adb -s $$line emu kill; done || true
-	@pkill -f "react-native" || true
-	@pkill -f "metro" || true
+test.backend:
+	docker compose up -d supabase-db
+	cd backend && pytest
 
-test.setup: check-env
-	@echo "$(GREEN)Setting up test environment...$(NC)"
-	@cd $(APP_DIR) && yarn install
-	@cd $(APP_DIR)/android && ./gradlew clean
-	@echo "$(GREEN)Starting emulator...$(NC)"
-	@$(ANDROID_HOME)/emulator/emulator -avd $(EMULATOR_NAME) -no-window -no-snapshot -no-audio -gpu swiftshader_indirect &
-	@adb wait-for-device
-	@until adb shell getprop sys.boot_completed | grep -q '1'; do sleep 1; done
+test.mobile:
+	cd app && npm test
 
-check-env:
-	@command -v node >/dev/null 2>&1 || { echo "$(RED)node is required$(NC)" >&2; exit 1; }
-	@command -v yarn >/dev/null 2>&1 || { echo "$(RED)yarn is required$(NC)" >&2; exit 1; }
-	@command -v adb >/dev/null 2>&1 || { echo "$(RED)adb is required$(NC)" >&2; exit 1; }
-	@test -d "$(ANDROID_HOME)" || { echo "$(RED)Android SDK not found$(NC)" >&2; exit 1; }
-
-# Individual test runners
-test.unit: export JEST_JUNIT_OUTPUT_DIR=$(TEST_OUTPUT_DIR)
-test.unit: export JEST_JUNIT_OUTPUT_NAME=unit.xml
-test.unit:
-	@echo "$(GREEN)Running unit tests...$(NC)"
-	@cd $(APP_DIR) && yarn test --testPathPattern=".*\.unit\.test\.(js|ts)x?" \
-		--reporters=default --reporters=jest-junit \
-		$(JEST_FLAGS)
-
-test.integration: export JEST_JUNIT_OUTPUT_DIR=$(TEST_OUTPUT_DIR)
-test.integration: export JEST_JUNIT_OUTPUT_NAME=integration.xml
-test.integration:
-	@echo "$(GREEN)Running integration tests...$(NC)"
-	@cd $(APP_DIR) && yarn test --testPathPattern=".*\.integration\.test\.(js|ts)x?" \
-		--reporters=default --reporters=jest-junit \
-		$(JEST_FLAGS)
-
-test.e2e: export JEST_JUNIT_OUTPUT_DIR=$(TEST_OUTPUT_DIR)
-test.e2e: export JEST_JUNIT_OUTPUT_NAME=e2e.xml
-test.e2e:
-	@echo "$(GREEN)Running E2E tests...$(NC)"
-	@cd $(APP_DIR) && yarn test --testPathPattern=".*\.e2e\.test\.(js|ts)x?" \
-		--reporters=default --reporters=jest-junit \
-		$(JEST_FLAGS)
-
-# Development convenience targets
-.PHONY: test.watch test.coverage
-
-test.watch:
-	@echo "$(GREEN)Starting test watcher...$(NC)"
-	@cd $(APP_DIR) && yarn test --watch
-
-test.coverage:
-	@echo "$(GREEN)Generating coverage report...$(NC)"
-	@cd $(APP_DIR) && yarn test --coverage --coverageDirectory=../$(TEST_OUTPUT_DIR)/coverage
-
-# Metro bundler management
-.PHONY: metro.start metro.stop metro.restart
-
-metro.start:
-	@echo "$(GREEN)Starting Metro bundler...$(NC)"
-	@cd $(APP_DIR) && yarn start --reset-cache &
-
-metro.stop:
-	@pkill -f "react-native start" || true
-	@pkill -f "metro" || true
-
-metro.restart: metro.stop metro.start
-
-# Emulator management
-.PHONY: emu.start emu.stop emu.restart
-
-emu.start:
-	@echo "$(GREEN)Starting emulator...$(NC)"
-	@$(ANDROID_HOME)/emulator/emulator -avd $(EMULATOR_NAME) -no-window -no-snapshot -no-audio -gpu swiftshader_indirect &
-	@adb wait-for-device
-	@until adb shell getprop sys.boot_completed | grep -q '1'; do sleep 1; done
-
-emu.stop:
-	@echo "$(GREEN)Stopping emulator...$(NC)"
-	@adb devices | grep emulator | cut -f1 | while read line; do adb -s $$line emu kill; done || true
-
-emu.restart: emu.stop emu.start
+test.ai:
+	cd ai && pytest
 
 # Validation
 validate: validate.video validate.deps validate.env validate.secrets
@@ -307,8 +201,7 @@ secrets.sync: secrets.init
 # Firebase Infrastructure Management
 .PHONY: firebase.init firebase.setup firebase.start firebase.stop firebase.logs firebase.health firebase.clean
 
-# Environment variables
-DOCKER_COMPOSE = docker-compose -f docker-compose.yml -f docker-compose.test.yml
+# Firebase emulator settings
 FIREBASE_EMULATOR_HOST = localhost
 FIREBASE_AUTH_PORT = 9099
 FIREBASE_STORAGE_PORT = 9199
@@ -565,31 +458,29 @@ help:
 	@echo "  make clean    - Clean up everything"
 	@echo "  make help     - Show this help message"
 
-# Demo timing validation
-demo.timing:
-	@echo -e "$(GREEN)Running timing validation...$(NC)"
-	@cd $(APP_DIR) && NODE_ENV=test yarn test src/services/__tests__/timing.test.js
-	@echo -e "$(GREEN)Timing validation complete$(NC)"
+# Build release APK
+apk.build:
+	cd app/android && ./gradlew assembleRelease
 
-# Demo safety measures
-demo.safe: demo
-	@echo -e "$(GREEN)Setting up safety backup...$(NC)"
-	@mkdir -p /tmp/tiktoken_backup
-	@cp assets/demo1.mp4 /tmp/tiktoken_backup/backup.mp4
-	@adb push /tmp/tiktoken_backup/backup.mp4 /sdcard/Download/
-	@echo -e "$(GREEN)Safety backup ready$(NC)"
+# Upload APK to Firebase App Distribution
+apk.dist: apk.build
+	firebase appdistribution:distribute app/android/app/build/outputs/apk/release/app-release.apk \
+		--app $(FIREBASE_APP_ID) \
+		--groups "testers,developers" \
+		--release-notes "Latest build with Firebase integration"
 
-# Demo recovery
-demo.recover:
-	@echo -e "$(GREEN)Recovering demo state...$(NC)"
-	@adb shell am force-stop com.tiktoken
-	@adb push /tmp/tiktoken_backup/backup.mp4 /sdcard/Download/
-	@cd $(APP_DIR) && yarn start --reset-cache &
-	@echo -e "$(GREEN)Recovery complete. Restart the app.$(NC)"
+# Fast distribution target
+dist.fast: apk.build
+	@echo "Fast distribution..."
+	cd app/android && ./gradlew assembleRelease && \
+	firebase appdistribution:distribute \
+		app/build/outputs/apk/release/app-release.apk \
+		--app 1:785506674013:android:13b7bc99b37487284874b4 \
+		--groups "testers,developers"
 
-# Metro server restart
-metro.restart:
-	@echo -e "$(GREEN)Restarting Metro...$(NC)"
-	@pkill -f "react-native start" || true
-	@cd $(APP_DIR) && yarn start --reset-cache &
-	@echo -e "$(GREEN)Metro restarted$(NC)" 
+# Full distribution flow
+firebase.dist: apk.dist
+
+# End-to-end test
+test.e2e:
+	yarn test:e2e 

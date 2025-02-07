@@ -56,3 +56,7 @@ pids/
 .DS_Store
 Thumbs.db
 app/env/.env*
+
+# Android build artifacts
+.gradle/
+.cxx/

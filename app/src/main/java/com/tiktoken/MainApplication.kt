@@ -1,4 +1,4 @@
-package com.app
+package com.tiktoken
 
 import android.app.Application
 import com.facebook.react.PackageList
@@ -11,6 +11,7 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
+import com.tiktoken.BuildConfig
 
 class MainApplication : Application(), ReactApplication {
 
@@ -41,4 +42,4 @@ class MainApplication : Application(), ReactApplication {
       load()
     }
   }
-}
+} 
