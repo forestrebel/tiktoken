@@ -234,6 +234,72 @@ class DemoVideoService {
       console.warn('Demo cleanup error:', error);
     }
   }
+
+  async handleError(error) {
+    try {
+      // Log error for debugging
+      console.error('Demo error:', error);
+
+      // Basic error categorization
+      const errorType = this.categorizeError(error);
+      
+      // Quick recovery actions
+      switch (errorType) {
+        case 'format':
+          return {
+            status: 'error',
+            message: 'Please select a portrait MP4 video',
+            recoverable: true
+          };
+          
+        case 'size':
+          return {
+            status: 'error',
+            message: 'Video must be under 100MB',
+            recoverable: true
+          };
+          
+        case 'network':
+          return {
+            status: 'error',
+            message: 'Please check your connection',
+            recoverable: true
+          };
+          
+        default:
+          return {
+            status: 'error',
+            message: 'An unexpected error occurred',
+            recoverable: false
+          };
+      }
+    } catch (recoveryError) {
+      // If error handling itself fails, return safe default
+      return {
+        status: 'error',
+        message: 'Unable to process video',
+        recoverable: false
+      };
+    }
+  }
+
+  categorizeError(error) {
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('format') || message.includes('mp4') || message.includes('portrait')) {
+      return 'format';
+    }
+    
+    if (message.includes('size') || message.includes('mb')) {
+      return 'size';
+    }
+    
+    if (message.includes('network') || message.includes('connection')) {
+      return 'network';
+    }
+    
+    return 'unknown';
+  }
 }
 
 export const demoVideoService = new DemoVideoService();

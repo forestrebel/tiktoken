@@ -1,142 +1,48 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  Share,
-  Platform,
-  Clipboard,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
 
-const ShareSuccess = ({ videoPath, onDone }) => {
-  const [copied, setCopied] = useState(false);
-
+export function ShareSuccess({ videoId, onClose }) {
   const handleShare = async () => {
     try {
-      const shareUrl = `https://nature.app/watch/${encodeURIComponent(videoPath)}`;
       const result = await Share.share({
-        message: 'Check out my nature video!',
-        url: shareUrl,
+        message: `Check out my nature video! https://tiktoken.app/v/${videoId}`,
+        title: 'Share Nature Video',
       });
-
+      
       if (result.action === Share.sharedAction) {
-        console.log('Shared successfully');
+        onClose?.();
       }
     } catch (error) {
-      console.error('Share error:', error);
+      console.error('Share failed:', error);
     }
-  };
-
-  const handleCopy = () => {
-    const shareUrl = `https://nature.app/watch/${encodeURIComponent(videoPath)}`;
-    Clipboard.setString(shareUrl);
-    setCopied(true);
-
-    // Reset copied state after 2 seconds
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
   };
 
   return (
     <View style={styles.container}>
-      {/* Success Icon */}
-      <View style={styles.iconContainer}>
-        <Icon
-          name="checkmark-circle"
-          size={64}
-          color="#34c759"
-        />
-      </View>
+      <Text style={styles.title}>Video Ready!</Text>
+      <Text style={styles.subtitle}>Your nature video has been processed</Text>
+      
+      <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+        <Text style={styles.shareText}>Share Video</Text>
+      </TouchableOpacity>
 
-      {/* Success Message */}
-      <Text style={styles.title}>
-        Upload Complete!
-      </Text>
-      <Text style={styles.subtitle}>
-        Your nature video is ready to share
-      </Text>
-
-      {/* Share Options */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.button, styles.shareButton]}
-          onPress={handleShare}
-          activeOpacity={0.8}
-        >
-          <Icon
-            name="share-outline"
-            size={20}
-            color="#fff"
-            style={styles.buttonIcon}
-          />
-          <Text style={styles.buttonText}>
-            Share Video
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.copyButton]}
-          onPress={handleCopy}
-          activeOpacity={0.8}
-        >
-          <Icon
-            name={copied ? 'checkmark-outline' : 'copy-outline'}
-            size={20}
-            color="#007AFF"
-            style={styles.buttonIcon}
-          />
-          <Text style={[styles.buttonText, styles.copyText]}>
-            {copied ? 'Link Copied!' : 'Copy Link'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Done Button */}
-      <TouchableOpacity
-        style={styles.doneButton}
-        onPress={onDone}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.doneText}>
-          Done
-        </Text>
+      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <Text style={styles.closeText}>Done</Text>
       </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    padding: 20,
     backgroundColor: '#fff',
+    padding: 20,
     borderRadius: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
   },
   title: {
     fontSize: 24,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: 'bold',
     marginBottom: 8,
   },
   subtitle: {
@@ -145,44 +51,23 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textAlign: 'center',
   },
-  actions: {
-    width: '100%',
-    gap: 12,
-    marginBottom: 24,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  shareButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 32,
     paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    width: '100%',
+    borderRadius: 24,
+    marginBottom: 12,
   },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  buttonText: {
+  shareText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  shareButton: {
-    backgroundColor: '#007AFF',
-  },
-  copyButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  copyText: {
-    color: '#007AFF',
-  },
-  doneButton: {
+  closeButton: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
   },
-  doneText: {
-    fontSize: 16,
+  closeText: {
     color: '#666',
+    fontSize: 14,
   },
 });
-
-export default ShareSuccess;

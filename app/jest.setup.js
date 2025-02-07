@@ -96,10 +96,16 @@ jest.mock('ffmpeg-kit-react-native', () => ({
 jest.mock('react-native', () => ({
   Platform: {
     OS: 'android',
-    select: jest.fn(),
+    select: jest.fn(obj => obj.android)
   },
   Dimensions: {
     get: jest.fn(() => ({ width: 360, height: 640 })),
+  },
+  NativeModules: {
+    VideoModule: {
+      initialize: jest.fn(),
+      processVideo: jest.fn()
+    }
   },
 }));
 

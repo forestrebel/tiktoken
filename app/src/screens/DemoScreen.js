@@ -15,6 +15,8 @@ import { cacheManager } from '../services/cacheManager';
 import { UploadScreen } from './UploadScreen';
 import DemoValidation from '../components/DemoValidation';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { ShareSuccess } from '../components/ShareSuccess';
+import { videoService } from '../services/video';
 
 // Demo scenario descriptions
 const DEMO_DESCRIPTIONS = {
@@ -61,7 +63,7 @@ const DEMO_DESCRIPTIONS = {
   },
 };
 
-const DemoScreen = () => {
+const DemoScreen = ({ navigation }) => {
   const [selectedDemo, setSelectedDemo] = useState(null);
   const [demoVideo, setDemoVideo] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -70,6 +72,8 @@ const DemoScreen = () => {
   const [prepStatus, setPrepStatus] = useState({ message: '', progress: 0 });
   const [isPrepping, setIsPrepping] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [currentVideo, setCurrentVideo] = useState(null);
+  const [showShare, setShowShare] = useState(false);
 
   // Get available demo types
   const demoTypes = demoVideoService.getAvailableTypes();
@@ -239,6 +243,16 @@ const DemoScreen = () => {
     );
   };
 
+  const handleVideoSuccess = (video) => {
+    setCurrentVideo(video);
+    setShowShare(true);
+  };
+
+  const handleShareClose = () => {
+    setShowShare(false);
+    navigation.navigate('Profile');
+  };
+
   // If demo video is selected, show upload screen
   if (demoVideo) {
     return (
@@ -375,9 +389,16 @@ const DemoScreen = () => {
             >
               <Icon name="close" size={24} color="#666" />
             </TouchableOpacity>
-            <DemoValidation />
+            <DemoValidation onSuccess={handleVideoSuccess} />
           </View>
         </View>
+      )}
+
+      {showShare && (
+        <ShareSuccess 
+          videoId={currentVideo?.id} 
+          onClose={handleShareClose}
+        />
       )}
     </View>
   );

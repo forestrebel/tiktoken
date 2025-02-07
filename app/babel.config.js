@@ -1,4 +1,25 @@
-module.exports = {
-  presets: ['module:@react-native/babel-preset'],
-  plugins: ['react-native-reanimated/plugin'],
+export default {
+  presets: [
+    ['module:metro-react-native-babel-preset', {
+      targets: { node: 'current' }
+    }]
+  ],
+  plugins: [
+    ['@babel/plugin-transform-modules-commonjs', {
+      allowTopLevelThis: true,
+      loose: true,
+      strict: false
+    }]
+  ],
+  env: {
+    test: {
+      presets: [
+        ['@babel/preset-env', {
+          targets: { node: 'current' },
+          modules: 'commonjs'
+        }]
+      ],
+      plugins: ['@babel/plugin-transform-modules-commonjs']
+    }
+  }
 };

@@ -8,12 +8,12 @@ import {
   Alert,
 } from 'react-native';
 import * as DocumentPicker from 'react-native-document-picker';
-import { videoService } from '../services';
+import { videoService } from '../services/video';
 
 /**
  * User profile screen with video management
  */
-export default function ProfileScreen({ navigation }) {
+export function ProfileScreen({ navigation }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -23,10 +23,8 @@ export default function ProfileScreen({ navigation }) {
   }, []);
 
   const loadVideos = async () => {
-    const result = await videoService.getVideos();
-    if (result.status === 'success') {
-      setVideos(result.data);
-    }
+    const userVideos = await videoService.getVideos();
+    setVideos(userVideos);
   };
 
   const handleImportVideo = async () => {
@@ -54,6 +52,25 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>My Videos</Text>
+      </View>
+      <View style={styles.grid}>
+        {videos.map(video => (
+          <TouchableOpacity
+            key={video.id}
+            style={styles.videoItem}
+            onPress={() => navigation.navigate('Player', { videoId: video.id })}
+          >
+            <Text style={styles.videoName} numberOfLines={1}>
+              {video.fileName || 'Untitled'}
+            </Text>
+            <Text style={styles.videoMeta}>
+              {new Date(video.createdAt).toLocaleDateString()}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
       {/* Import Button */}
       <TouchableOpacity
         style={[styles.importButton, loading && styles.importButtonDisabled]}
@@ -64,27 +81,6 @@ export default function ProfileScreen({ navigation }) {
           {loading ? 'Importing...' : 'Import Video'}
         </Text>
       </TouchableOpacity>
-
-      {/* Video List */}
-      <FlatList
-        data={videos}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.videoItem}
-            onPress={() => navigation.navigate('View', { videoId: item.id })}
-          >
-            <Text style={styles.videoDate}>
-              {new Date(item.created_at).toLocaleString()}
-            </Text>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            No videos yet. Import one to start!
-          </Text>
-        }
-      />
     </View>
   );
 }
@@ -93,7 +89,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    padding: 15,
+  },
+  header: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  grid: {
+    padding: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  videoItem: {
+    width: '50%',
+    padding: 8,
+  },
+  videoName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  videoMeta: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
   importButton: {
     backgroundColor: '#4444ff',
@@ -109,21 +131,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  videoItem: {
-    padding: 15,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  videoDate: {
-    fontSize: 16,
-    color: '#333',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#666',
-    marginTop: 30,
-    fontSize: 16,
   },
 });

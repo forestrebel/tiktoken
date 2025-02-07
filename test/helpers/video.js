@@ -1,46 +1,61 @@
 import { VideoMetadata } from '../../app/src/services/videoUploader';
 
+// Mock File implementation for testing
+class MockFile {
+  constructor(content, name, options = {}) {
+    this.content = content;
+    this.name = name;
+    this.type = options.type || '';
+    this.size = options.size || content.length;
+  }
+}
+
+// If File is not defined, use our mock
+if (typeof File === 'undefined') {
+  global.File = MockFile;
+}
+
 // Video file creation helpers
 export const createVideoFile = {
-    portrait: (size = 1024) => new File(
-        [new ArrayBuffer(size)],
-        'portrait.mp4',
-        { type: 'video/mp4' }
-    ),
-
-    landscape: (size = 1024) => new File(
-        [new ArrayBuffer(size)],
-        'landscape.mp4',
-        { type: 'video/mp4' }
-    ),
-
-    oversized: () => {
-        const file = new File(
-            [new ArrayBuffer(1024)],
-            'large.mp4',
-            { type: 'video/mp4' }
-        );
-        // Override size property to simulate large file
-        Object.defineProperty(file, 'size', { value: 101 * 1024 * 1024 });
-        return file;
+    portrait() {
+        return new MockFile(['test-content'], 'test.mp4', {
+            type: 'video/mp4',
+            size: 50 * 1024 * 1024 // 50MB
+        });
     },
 
-    corrupt: () => new File(
-        [new ArrayBuffer(1024)],
-        'corrupt.mp4',
-        { type: 'application/octet-stream' }
-    )
+    landscape() {
+        return new MockFile(['test-content'], 'test.mp4', {
+            type: 'video/mp4',
+            size: 75 * 1024 * 1024 // 75MB
+        });
+    },
+
+    oversized() {
+        return new MockFile(['test-content'], 'test.mp4', {
+            type: 'video/mp4',
+            size: 150 * 1024 * 1024 // 150MB
+        });
+    },
+
+    invalid() {
+        return new MockFile(['test-content'], 'test.txt', {
+            type: 'text/plain',
+            size: 1024
+        });
+    }
 };
 
 // Video metadata generation
 export const createVideoMetadata = {
-    valid: (overrides = {}) => ({
-        width: 720,
-        height: 1280,
-        fps: 30,
-        duration: 45,
-        ...overrides
-    }),
+    valid() {
+        return {
+            width: 1920,
+            height: 1080,
+            fps: 30,
+            duration: 120
+        };
+    },
 
     portrait: () => ({
         width: 720,
@@ -96,6 +111,29 @@ export const createVideoMetadata = {
             fps: 30,
             duration: 60
         })
+    },
+
+    invalid: {
+        width: () => ({
+            height: 1080,
+            fps: 30,
+            duration: 120
+        }),
+        height: () => ({
+            width: 1920,
+            fps: 30,
+            duration: 120
+        }),
+        fps: () => ({
+            width: 1920,
+            height: 1080,
+            duration: 120
+        }),
+        duration: () => ({
+            width: 1920,
+            height: 1080,
+            fps: 30
+        })
     }
 };
 
@@ -112,7 +150,7 @@ export const uploadScenarios = {
             metadata: createVideoMetadata.valid()
         },
         format: {
-            file: createVideoFile.corrupt(),
+            file: createVideoFile.invalid(),
             metadata: createVideoMetadata.valid()
         }
     },
