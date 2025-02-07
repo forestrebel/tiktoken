@@ -1,5 +1,5 @@
 # Development environment management
-.PHONY: dev test deploy clean validate secrets demo reset install-deps setup-android
+.PHONY: dev test deploy clean validate secrets demo reset install-deps setup-android apk.build apk.dist firebase.dist test.e2e
 
 # Variables
 ANDROID_DIR = app/android
@@ -10,6 +10,9 @@ JAVA_HOME ?= /usr/lib/jvm/java-11-openjdk-amd64
 SHELL := /bin/bash
 PROJECT_NAME := tiktoken
 APP_DIR := app
+
+# Docker compose command
+DOCKER_COMPOSE = docker compose -f docker-compose.yml -f docker-compose.test.yml
 
 # Colors for output
 GREEN := \033[0;32m
@@ -198,8 +201,7 @@ secrets.sync: secrets.init
 # Firebase Infrastructure Management
 .PHONY: firebase.init firebase.setup firebase.start firebase.stop firebase.logs firebase.health firebase.clean
 
-# Environment variables
-DOCKER_COMPOSE = docker-compose -f docker-compose.yml -f docker-compose.test.yml
+# Firebase emulator settings
 FIREBASE_EMULATOR_HOST = localhost
 FIREBASE_AUTH_PORT = 9099
 FIREBASE_STORAGE_PORT = 9199
@@ -454,4 +456,31 @@ help:
 	@echo "  make start    - Start the app (emulator + metro + app)"
 	@echo "  make stop     - Stop all services"
 	@echo "  make clean    - Clean up everything"
-	@echo "  make help     - Show this help message" 
+	@echo "  make help     - Show this help message"
+
+# Build release APK
+apk.build:
+	cd app/android && ./gradlew assembleRelease
+
+# Upload APK to Firebase App Distribution
+apk.dist: apk.build
+	firebase appdistribution:distribute app/android/app/build/outputs/apk/release/app-release.apk \
+		--app $(FIREBASE_APP_ID) \
+		--groups "testers,developers" \
+		--release-notes "Latest build with Firebase integration"
+
+# Fast distribution target
+dist.fast: apk.build
+	@echo "Fast distribution..."
+	cd app/android && ./gradlew assembleRelease && \
+	firebase appdistribution:distribute \
+		app/build/outputs/apk/release/app-release.apk \
+		--app 1:785506674013:android:13b7bc99b37487284874b4 \
+		--groups "testers,developers"
+
+# Full distribution flow
+firebase.dist: apk.dist
+
+# End-to-end test
+test.e2e:
+	yarn test:e2e 

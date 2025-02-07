@@ -1,7 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const OPENSHOT_API = process.env.OPENSHOT_API || 'http://localhost:8000/api';
+const OPENSHOT_API = process.env.OPENSHOT_API_URL || 'http://18.119.159.104/';
+const OPENSHOT_TOKEN = process.env.OPENSHOT_TOKEN;
 const PROJECTS_KEY = '@openshot_projects';
+
+// Video specifications for TikToken
+const VIDEO_SPECS = {
+  WIDTH: 720,
+  HEIGHT: 1280,
+  FPS_NUM: 30,
+  FPS_DEN: 1,
+  SAMPLE_RATE: 44100,
+  CHANNELS: 2,
+  CHANNEL_LAYOUT: 3
+};
 
 // Error class for OpenShot-specific errors
 class OpenShotError extends Error {
@@ -11,6 +23,12 @@ class OpenShotError extends Error {
     this.suggestions = suggestions;
   }
 }
+
+// Headers with authentication
+const headers = {
+  'Authorization': `Token ${OPENSHOT_TOKEN}`,
+  'Content-Type': 'application/json'
+};
 
 // Exponential backoff for retries
 const backoff = (retryCount) => {
@@ -31,18 +49,19 @@ export const OpenShotService = {
         return projects[creatorId];
       }
 
-      // Create new project
-      const response = await fetch(`${OPENSHOT_API}/projects/`, {
+      // Create new project with TikToken specs
+      const response = await fetch(`${OPENSHOT_API}projects/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           name: `Nature_${creatorId}`,
-          width: 720,
-          height: 1280,
-          fps: 30,
-          profile: 'mobile',
+          width: VIDEO_SPECS.WIDTH,
+          height: VIDEO_SPECS.HEIGHT,
+          fps_num: VIDEO_SPECS.FPS_NUM,
+          fps_den: VIDEO_SPECS.FPS_DEN,
+          sample_rate: VIDEO_SPECS.SAMPLE_RATE,
+          channels: VIDEO_SPECS.CHANNELS,
+          channel_layout: VIDEO_SPECS.CHANNEL_LAYOUT
         }),
       });
 
@@ -86,9 +105,10 @@ export const OpenShotService = {
       });
       formData.append('project_id', projectId);
 
-      const response = await fetch(`${OPENSHOT_API}/videos/`, {
+      const response = await fetch(`${OPENSHOT_API}videos/`, {
         method: 'POST',
         headers: {
+          ...headers,
           'Content-Type': 'multipart/form-data',
         },
         body: formData,
@@ -120,19 +140,17 @@ export const OpenShotService = {
    */
   async processVideo(projectId, videoId) {
     try {
-      const response = await fetch(`${OPENSHOT_API}/videos/${videoId}/process`, {
+      const response = await fetch(`${OPENSHOT_API}videos/${videoId}/process`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           project_id: projectId,
           operations: [
             {
               name: 'validate_portrait',
               params: {
-                width: 720,
-                height: 1280,
+                width: VIDEO_SPECS.WIDTH,
+                height: VIDEO_SPECS.HEIGHT,
                 tolerance: 0.01,
               },
             },
@@ -165,7 +183,9 @@ export const OpenShotService = {
    */
   async getStatus(videoId, retryCount = 0) {
     try {
-      const response = await fetch(`${OPENSHOT_API}/videos/${videoId}/status`);
+      const response = await fetch(`${OPENSHOT_API}videos/${videoId}/status`, {
+        headers
+      });
 
       if (!response.ok) {
         if (retryCount < 3) {
@@ -194,8 +214,9 @@ export const OpenShotService = {
    */
   async cleanup(projectId) {
     try {
-      await fetch(`${OPENSHOT_API}/projects/${projectId}`, {
+      await fetch(`${OPENSHOT_API}projects/${projectId}`, {
         method: 'DELETE',
+        headers
       });
 
       // Clean up local cache
