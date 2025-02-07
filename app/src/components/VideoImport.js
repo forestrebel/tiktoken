@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
   PermissionsAndroid,
+  ToastAndroid,
 } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import { videoService } from '../services/video';
@@ -36,6 +37,7 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
   const checkPermissions = async () => {
     try {
       if (Platform.OS === 'android') {
+        console.log('Checking Android permissions...');
         const granted = await PermissionsAndroid.requestMultiple([
           PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
@@ -45,10 +47,13 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
           permission => permission === PermissionsAndroid.RESULTS.GRANTED
         );
 
+        console.log('Permissions status:', granted);
         setHasPermission(allGranted);
 
         if (!allGranted) {
           showError('Storage permissions are required to import videos');
+        } else {
+          console.log('All permissions granted');
         }
       } else {
         setHasPermission(true);
@@ -64,6 +69,7 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       const tempDir = `${RNFS.CachesDirectoryPath}/VideoImport`;
       if (await RNFS.exists(tempDir)) {
         await RNFS.unlink(tempDir);
+        console.log('Cleaned up temp directory:', tempDir);
       }
     } catch (error) {
       console.warn('Cleanup error:', error);
@@ -71,6 +77,13 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
   };
 
   const validateVideo = async (file) => {
+    console.log('Validating video file:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      uri: file.uri
+    });
+    
     // Basic validation
     if (!file || !file.uri) {
       throw new Error('Invalid file selected');
@@ -78,43 +91,53 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
 
     // Size validation
     const sizeMB = file.size / (1024 * 1024);
+    console.log('File size:', sizeMB.toFixed(2), 'MB');
     if (sizeMB > MAX_SIZE_MB) {
       throw new Error(`Video must be under ${MAX_SIZE_MB}MB (current: ${Math.round(sizeMB)}MB)`);
     }
 
-    // Format validation
-    const format = file.type?.split('/')[1]?.toLowerCase();
-    if (!format || !VALID_FORMATS.includes(format)) {
-      throw new Error(`Please select a valid video format (${VALID_FORMATS.join(', ')})`);
+    // Format validation - more permissive
+    const format = file.type?.toLowerCase();
+    console.log('File format:', format);
+    if (!format || !format.startsWith('video/')) {
+      throw new Error('Please select a valid video file');
     }
 
-    // Additional security checks
     try {
       // Create secure temp directory
       const tempDir = `${RNFS.CachesDirectoryPath}/VideoImport`;
       await RNFS.mkdir(tempDir);
+      console.log('Created temp directory:', tempDir);
 
       // Copy to secure location for validation
       const tempPath = `${tempDir}/${file.name}`;
+      console.log('Copying file to:', tempPath);
       await RNFS.copyFile(file.uri, tempPath);
 
       // Validate file integrity
       const stats = await RNFS.stat(tempPath);
+      console.log('File stats:', stats);
+      
+      // Basic integrity check
       if (!stats.size || stats.size !== file.size) {
         throw new Error('File integrity check failed');
       }
 
       // Clean up temp file
       await RNFS.unlink(tempPath);
-
+      console.log('Validation successful');
       return true;
     } catch (error) {
       console.error('Validation error:', error);
-      throw new Error('Video validation failed');
+      throw new Error('Video validation failed: ' + error.message);
     }
   };
 
   const showError = (message) => {
+    console.error('Import error:', message);
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.LONG);
+    }
     Alert.alert(
       'Import Error',
       message,
@@ -137,6 +160,7 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
 
   const handleImport = async () => {
     if (!hasPermission) {
+      console.log('No permissions, requesting...');
       await checkPermissions();
       if (!hasPermission) {
         return;
@@ -148,8 +172,10 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       setIsImporting(true);
       setProgress(0);
       onImportStart?.();
+      console.log('Starting video import...');
 
       // Pick video file with specific configuration
+      console.log('Opening document picker...');
       const result = await DocumentPicker.pick({
         type: [DocumentPicker.types.video],
         copyTo: 'cachesDirectory',
@@ -158,18 +184,23 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       });
       
       const file = result[0];
+      console.log('Selected file:', file);
       
       // Validate before proceeding
       await validateVideo(file);
 
       // Upload with progress tracking
+      console.log('Starting video import with service...');
       const video = await videoService.importVideo(
         file.fileCopyUri || file.uri,
         (progress) => {
-          setProgress(Math.round(progress * 100));
+          const progressPercent = Math.round(progress * 100);
+          console.log('Import progress:', progressPercent + '%');
+          setProgress(progressPercent);
         }
       );
       
+      console.log('Import completed successfully:', video);
       // Complete flow
       onImportComplete?.(video);
       
@@ -180,6 +211,8 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
         console.error('Import error:', error);
         showError(error.message || 'Failed to import video');
         onError?.(error);
+      } else {
+        console.log('Document picker cancelled by user');
       }
     } finally {
       setIsImporting(false);
@@ -213,7 +246,7 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       </TouchableOpacity>
       <Text style={styles.helpText}>
         {hasPermission 
-          ? `Tap to select video (MP4, max ${MAX_SIZE_MB}MB)`
+          ? `Tap to select video (${VALID_FORMATS.join(', ')}, max ${MAX_SIZE_MB}MB)`
           : 'Storage permission required'}
       </Text>
     </View>

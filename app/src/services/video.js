@@ -137,13 +137,21 @@ export const videoService = {
    */
   async importVideo(uri, onProgress) {
     try {
+      console.log('Starting video import for URI:', uri);
+      
       // Generate unique filename
       const timestamp = new Date().getTime();
       const filename = `video_${timestamp}.mp4`;
       const destPath = `${APP_CACHE_DIR}/${filename}`;
+      
+      console.log('Destination path:', destPath);
+
+      // Ensure cache directory exists
+      await ensureCacheDir();
 
       // Copy file to app's cache directory
       if (uri.startsWith('file://')) {
+        console.log('Copying local file...');
         await RNFS.copyFile(uri.replace('file://', ''), destPath);
         // Simulate progress for local files
         for (let i = 0; i <= 100; i += 10) {
@@ -151,6 +159,7 @@ export const videoService = {
           await new Promise(resolve => setTimeout(resolve, 50));
         }
       } else {
+        console.log('Downloading remote file...');
         // Download remote file with progress
         const result = await RNFS.downloadFile({
           fromUrl: uri,
@@ -166,17 +175,34 @@ export const videoService = {
         }
       }
 
-      // Return video info
+      // Verify the file exists and get stats
+      const exists = await RNFS.exists(destPath);
+      if (!exists) {
+        throw new Error('File not found after copy/download');
+      }
+
       const stats = await RNFS.stat(destPath);
+      console.log('File stats after import:', stats);
+
+      // Create external storage directory if needed
+      const externalDir = '/storage/emulated/0/Android/data/com.tiktoken/files/videos';
+      await RNFS.mkdir(externalDir);
+      
+      // Copy to external storage
+      const externalPath = `${externalDir}/${filename}`;
+      await RNFS.copyFile(destPath, externalPath);
+      console.log('Copied to external storage:', externalPath);
+
       return {
         uri: `file://${destPath}`,
         filename,
         size: stats.size,
         timestamp,
+        externalUri: `file://${externalPath}`
       };
     } catch (error) {
       console.error('Import error:', error);
-      throw new Error('Failed to import video');
+      throw new Error('Failed to import video: ' + error.message);
     }
   },
 
