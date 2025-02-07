@@ -1,10 +1,38 @@
 # Development environment management
-.PHONY: dev test deploy clean validate secrets
+.PHONY: dev test deploy clean validate secrets demo reset install-deps setup-android
 
 # Variables
 ANDROID_DIR = app/android
 VIDEO_MAX_SIZE = 104857600  # 100MB in bytes
 SECRETS_DIR = .secrets
+
+# Demo environment
+demo: check-deps install-deps setup-android
+	@echo "Starting demo environment..."
+	./scripts/demo.sh &
+	@echo "Demo started in background. Use 'make reset' to reset the environment."
+
+reset: check-deps
+	@echo "Resetting demo environment..."
+	./scripts/demo.sh reset
+
+# Kill the demo environment
+demo.stop:
+	@echo "Stopping demo environment..."
+	pkill -f "emulator" || true
+	pkill -f "react-native start" || true
+	adb kill-server || true
+	rm -rf $(TMPDIR)/metro-* 2>/dev/null || true
+	@echo "Demo environment stopped."
+
+# Dependencies and setup
+install-deps:
+	@echo "Installing dependencies..."
+	cd app && npm install
+
+setup-android:
+	@echo "Setting up Android environment..."
+	cd app && ./setup-android.sh
 
 # Development
 dev: check-deps
@@ -99,6 +127,9 @@ clean:
 	docker compose down -v
 	rm -rf $(ANDROID_DIR)/app/build
 	rm -rf app/node_modules
+	rm -rf app/android/.gradle
+	rm -rf app/ios/build
+	rm -rf $TMPDIR/metro-*
 	find . -type d -name "__pycache__" -exec rm -r {} +
 
 # Health checks
@@ -304,7 +335,19 @@ clean: dev.clean test.clean
 	@echo "Environment cleaned"
 
 # Help documentation
-.PHONY: help.firebase
+help: help.firebase
+	@echo "Main Commands:"
+	@echo "  make demo     - Set up and run the demo environment"
+	@echo "  make reset    - Reset the demo environment"
+	@echo "  make dev      - Start development environment"
+	@echo "  make clean    - Clean all environments"
+	@echo ""
+	@echo "Setup Commands:"
+	@echo "  make install-deps    - Install project dependencies"
+	@echo "  make setup-android   - Setup Android environment"
+	@echo "  make setup          - Full development environment setup"
+	@echo ""
+
 help.firebase:
 	@echo "Firebase Infrastructure Commands:"
 	@echo "  make firebase.init    - Initialize Firebase environment"

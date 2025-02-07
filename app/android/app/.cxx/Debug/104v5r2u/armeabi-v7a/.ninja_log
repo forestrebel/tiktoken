@@ -117,3 +117,7 @@
 7706	7769	1738880926617033364	/home/jon/git/tiktoken/app/android/app/build/intermediates/cxx/Debug/104v5r2u/obj/armeabi-v7a/libreact_codegen_rnscreens.so	4c1fac93dc5a1013
 4	9112	1738880927894040203	CMakeFiles/appmodules.dir/home/jon/git/tiktoken/app/android/app/build/generated/autolinking/src/main/jni/autolinking.cpp.o	bf14946cdced88b
 9112	9189	1738880928032040942	/home/jon/git/tiktoken/app/android/app/build/intermediates/cxx/Debug/104v5r2u/obj/armeabi-v7a/libappmodules.so	35249aeb2a442553
+1	4	0	/home/jon/git/tiktoken/app/android/app/.cxx/Debug/104v5r2u/armeabi-v7a/CMakeFiles/cmake.verify_globs	75069e010973df45
+0	4	0	/home/jon/git/tiktoken/app/android/app/.cxx/Debug/104v5r2u/armeabi-v7a/CMakeFiles/cmake.verify_globs	75069e010973df45
+0	4	0	/home/jon/git/tiktoken/app/android/app/.cxx/Debug/104v5r2u/armeabi-v7a/CMakeFiles/cmake.verify_globs	75069e010973df45
+0	16	0	clean	40a33b35a5747c4f

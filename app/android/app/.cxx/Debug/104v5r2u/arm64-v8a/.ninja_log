@@ -117,3 +117,7 @@
 8518	8600	1738880917923986483	/home/jon/git/tiktoken/app/android/app/build/intermediates/cxx/Debug/104v5r2u/obj/arm64-v8a/libreact_codegen_rnscreens.so	ffc13e6a9d40d32c
 4	9128	1738880918397989053	CMakeFiles/appmodules.dir/home/jon/git/tiktoken/app/android/app/build/generated/autolinking/src/main/jni/autolinking.cpp.o	9b58281c624f0e6d
 9128	9205	1738880918527989758	/home/jon/git/tiktoken/app/android/app/build/intermediates/cxx/Debug/104v5r2u/obj/arm64-v8a/libappmodules.so	4d6c4ffe18995969
+1	6	0	/home/jon/git/tiktoken/app/android/app/.cxx/Debug/104v5r2u/arm64-v8a/CMakeFiles/cmake.verify_globs	60c8fd8091a6feb3
+1	6	0	/home/jon/git/tiktoken/app/android/app/.cxx/Debug/104v5r2u/arm64-v8a/CMakeFiles/cmake.verify_globs	60c8fd8091a6feb3
+0	6	0	/home/jon/git/tiktoken/app/android/app/.cxx/Debug/104v5r2u/arm64-v8a/CMakeFiles/cmake.verify_globs	60c8fd8091a6feb3
+0	18	0	clean	40a33b35a5747c4f

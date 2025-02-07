@@ -1,33 +1,35 @@
 {
-  "name": "tiktoken-core",
+  "name": "tiktoken",
   "version": "1.0.0",
-  "description": "TikToken Core Service",
-  "main": "src/index.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "test": "npm run test:app && npm run test:storage",
-    "test:app": "vitest run --config config/vitest.config.js",
-    "test:storage": "jest test/storage.*.test.js --config config/jest.config.js --testTimeout 5000",
-    "dev": "docker compose -f config/docker-compose.dev.yml up",
-    "test:e2e": "docker compose -f config/docker-compose.test.yml up",
-    "prod": "docker compose -f config/docker-compose.prod.yml up"
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "test": "jest"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^2.1.1",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/stack": "^7.1.1",
-    "@supabase/supabase-js": "^2.39.3",
-    "express": "^4.18.2",
+    "react": "18.2.0",
+    "react-native": "0.72.7",
     "react-native-document-picker": "^9.3.1",
-    "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.23.0",
+    "react-native-image-picker": "^7.0.0",
     "react-native-safe-area-context": "^5.2.0",
     "react-native-screens": "^4.6.0",
-    "react-native-video": "^6.10.0"
+    "react-native-video": "^5.2.1"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^4.0.1",
-    "jest": "^29.7.0",
-    "vitest": "^3.0.5"
+    "@babel/core": "^7.20.0",
+    "@babel/preset-env": "^7.20.0",
+    "@babel/runtime": "^7.20.0",
+    "@react-native-community/cli": "^11.3.7",
+    "@react-native-community/cli-platform-android": "^11.3.7",
+    "@react-native-community/cli-platform-ios": "^11.3.7",
+    "@react-native/metro-config": "^0.72.11",
+    "babel-jest": "^29.2.1",
+    "jest": "^29.2.1",
+    "metro-react-native-babel-preset": "0.76.8"
   }
 }
