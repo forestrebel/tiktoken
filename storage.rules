@@ -3,34 +3,79 @@ rules_version = '2';
 // Craft rules for a simple but secure video upload system
 service firebase.storage {
   match /b/{bucket}/o {
-    // Utility functions
+    // Core security functions
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    function getUserId() {
+      return request.auth.token.sub;
+    }
+
+    function isValidFileType() {
+      return request.resource.contentType == 'video/mp4';
+    }
+
+    function isWithinSizeLimit() {
+      return request.resource.size <= 100 * 1024 * 1024;  // 100MB
+    }
+
+    // Metadata validation functions
+    function hasRequiredMetadata() {
+      let metadata = request.resource.metadata.customMetadata;
+      return metadata != null 
+          && metadata.width != null
+          && metadata.height != null
+          && metadata.fps != null
+          && metadata.duration != null;
+    }
+
+    function isValidDimensions() {
+      let metadata = request.resource.metadata.customMetadata;
+      return metadata.width == "720"
+          && metadata.height == "1280";
+    }
+
+    function isValidFps() {
+      let fps = float(request.resource.metadata.customMetadata.fps);
+      return fps >= 29.97 && fps <= 30;
+    }
+
+    function isValidDuration() {
+      let duration = float(request.resource.metadata.customMetadata.duration);
+      return duration > 0 && duration <= 60;
+    }
+
     function isValidVideo() {
-      return request.resource.contentType == 'video/mp4'
-        && request.resource.size <= 100 * 1024 * 1024;  // 100MB max
+      return isValidFileType()
+          && isWithinSizeLimit()
+          && hasRequiredMetadata()
+          && isValidDimensions()
+          && isValidFps()
+          && isValidDuration();
     }
 
-    function isTestUser() {
-      return request.auth != null 
-        && request.auth.token.sub.matches('test_.*');
-    }
-
-    // Videos collection - public read, authenticated write
-    match /videos/{videoId} {
-      // Anyone can read
+    // User video collections
+    match /users/{userId}/{videoId} {
       allow read: if true;
-      
-      // Test users can write with basic validation
-      allow write: if isTestUser() && isValidVideo();
+      allow write: if isAuthenticated()
+                  && getUserId() == userId
+                  && isValidVideo();
     }
 
-    // Test uploads location - minimal validation for tests
+    // Test collection with minimal validation
     match /test/{filename} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAuthenticated()
+                  && request.auth.token.sub.matches('test_.*')
+                  && isValidFileType()
+                  && isWithinSizeLimit();
+    }
+
+    // Public videos collection
+    match /videos/{videoId} {
+      allow read: if true;
+      allow write: if false;  // Only writable through user collections
     }
   }
 } 

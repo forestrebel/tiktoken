@@ -152,4 +152,180 @@ secrets.sync: secrets.init
 			sed -i "s|^$$secret=.*|$$secret=$$value|" .env || \
 			echo "$$secret=$$value" >> .env; \
 	done
-	@echo "Secrets synced to .env" 
+	@echo "Secrets synced to .env"
+
+# Firebase Infrastructure Management
+.PHONY: firebase.init firebase.setup firebase.start firebase.stop firebase.logs firebase.health firebase.clean
+
+# Environment variables
+DOCKER_COMPOSE = docker-compose -f docker-compose.yml -f docker-compose.test.yml
+FIREBASE_EMULATOR_HOST = localhost
+FIREBASE_AUTH_PORT = 9099
+FIREBASE_STORAGE_PORT = 9199
+FIREBASE_UI_PORT = 4000
+
+# Firebase initialization and setup
+firebase.init: check-deps
+	@echo "Initializing Firebase environment..."
+	@test -f firebase.json || (echo "Error: firebase.json not found" && exit 1)
+	@test -f storage.rules || (echo "Error: storage.rules not found" && exit 1)
+	@mkdir -p test/fixtures
+	@mkdir -p coverage
+
+firebase.setup: firebase.init
+	@echo "Setting up Firebase development environment..."
+	npm install firebase-tools@latest
+	npm install @firebase/rules-unit-testing
+	chmod +x scripts/test.sh
+	$(DOCKER_COMPOSE) pull firebase
+
+# Firebase emulator management
+firebase.start: firebase.setup
+	@echo "Starting Firebase emulators..."
+	$(DOCKER_COMPOSE) up -d firebase
+	@$(MAKE) firebase.health
+
+firebase.stop:
+	@echo "Stopping Firebase emulators..."
+	$(DOCKER_COMPOSE) stop firebase
+
+firebase.logs:
+	@echo "Viewing Firebase emulator logs..."
+	$(DOCKER_COMPOSE) logs -f firebase
+
+# Health checks
+firebase.health:
+	@echo "Checking Firebase emulator health..."
+	@timeout=30; \
+	while [ $$timeout -gt 0 ]; do \
+		if curl -s http://$(FIREBASE_EMULATOR_HOST):$(FIREBASE_UI_PORT) > /dev/null; then \
+			echo "Firebase emulators are healthy"; \
+			exit 0; \
+		fi; \
+		echo "Waiting for emulators... $$timeout seconds remaining"; \
+		sleep 1; \
+		timeout=$$((timeout - 1)); \
+	done; \
+	echo "Error: Firebase emulators failed to start"; \
+	$(MAKE) firebase.logs; \
+	exit 1
+
+# Comprehensive Firebase health check
+.PHONY: firebase.verify
+firebase.verify: firebase.health
+	@echo "Performing comprehensive Firebase verification..."
+	@echo "1. Checking emulator status..."
+	@curl -s http://$(FIREBASE_EMULATOR_HOST):$(FIREBASE_UI_PORT)/emulators > /dev/null || (echo "Emulator UI not responding" && exit 1)
+	@echo "2. Verifying auth emulator..."
+	@curl -s http://$(FIREBASE_EMULATOR_HOST):$(FIREBASE_AUTH_PORT)/.json > /dev/null || (echo "Auth emulator not responding" && exit 1)
+	@echo "3. Verifying storage emulator..."
+	@curl -s http://$(FIREBASE_EMULATOR_HOST):$(FIREBASE_STORAGE_PORT)/.json > /dev/null || (echo "Storage emulator not responding" && exit 1)
+	@echo "4. Checking rules compilation..."
+	@firebase emulators:exec --only storage "echo 'Rules compilation successful'" > /dev/null || (echo "Rules compilation failed" && exit 1)
+	@echo "5. Verifying test environment..."
+	@test -d test/fixtures || (echo "Test fixtures directory missing" && exit 1)
+	@test -d coverage || (echo "Coverage directory missing" && exit 1)
+	@echo "6. Checking dependencies..."
+	@npm list firebase-tools @firebase/rules-unit-testing > /dev/null || (echo "Firebase dependencies missing" && exit 1)
+	@echo "All Firebase components verified successfully!"
+
+# Testing infrastructure
+.PHONY: test.init test.firebase test.rules test.app test.ci test.coverage test.clean
+
+test.init: firebase.init
+	@echo "Initializing test environment..."
+	npm install
+	@mkdir -p coverage
+
+test.firebase: test.init
+	@echo "Running Firebase integration tests..."
+	FIREBASE_STORAGE_EMULATOR_HOST=$(FIREBASE_EMULATOR_HOST):$(FIREBASE_STORAGE_PORT) \
+	FIREBASE_AUTH_EMULATOR_HOST=$(FIREBASE_EMULATOR_HOST):$(FIREBASE_AUTH_PORT) \
+	npm run test:firebase
+
+test.rules: test.init
+	@echo "Running storage rules tests..."
+	npm run test:rules
+
+test.app: test.init
+	@echo "Running application tests..."
+	npm run test:app
+
+test.coverage:
+	@echo "Generating coverage report..."
+	npm run coverage
+	@echo "Coverage report available at coverage/lcov-report/index.html"
+
+test.clean:
+	@echo "Cleaning test artifacts..."
+	rm -rf coverage .nyc_output test/fixtures/*
+	$(DOCKER_COMPOSE) down -v
+
+# CI/CD targets
+test.ci: firebase.setup
+	@echo "Running CI test suite..."
+	$(MAKE) test.firebase
+	$(MAKE) test.rules
+	$(MAKE) test.app
+	$(MAKE) test.coverage
+	$(MAKE) test.clean
+
+# Development workflow
+.PHONY: dev.firebase dev.test dev.clean
+
+dev.firebase: firebase.start
+	@echo "Firebase development environment ready"
+	@echo "Auth Emulator: http://$(FIREBASE_EMULATOR_HOST):$(FIREBASE_AUTH_PORT)"
+	@echo "Storage Emulator: http://$(FIREBASE_EMULATOR_HOST):$(FIREBASE_STORAGE_PORT)"
+	@echo "Emulator UI: http://$(FIREBASE_EMULATOR_HOST):$(FIREBASE_UI_PORT)"
+
+dev.test: dev.firebase
+	@echo "Running development tests..."
+	$(MAKE) test.firebase
+	$(MAKE) test.rules
+	$(MAKE) test.app
+
+dev.clean:
+	@echo "Cleaning development environment..."
+	$(MAKE) firebase.stop
+	$(MAKE) test.clean
+
+# Main targets
+dev: dev.firebase
+
+test: test.init
+	@echo "Running all tests..."
+	$(MAKE) test.firebase
+	$(MAKE) test.rules
+	$(MAKE) test.app
+	$(MAKE) test.coverage
+
+clean: dev.clean test.clean
+	@echo "Environment cleaned"
+
+# Help documentation
+.PHONY: help.firebase
+help.firebase:
+	@echo "Firebase Infrastructure Commands:"
+	@echo "  make firebase.init    - Initialize Firebase environment"
+	@echo "  make firebase.setup   - Set up Firebase development tools"
+	@echo "  make firebase.start   - Start Firebase emulators"
+	@echo "  make firebase.stop    - Stop Firebase emulators"
+	@echo "  make firebase.logs    - View emulator logs"
+	@echo "  make firebase.health  - Check emulator health"
+	@echo ""
+	@echo "Testing Commands:"
+	@echo "  make test            - Run all tests"
+	@echo "  make test.firebase   - Run Firebase integration tests"
+	@echo "  make test.rules      - Run storage rules tests"
+	@echo "  make test.app        - Run application tests"
+	@echo "  make test.coverage   - Generate coverage report"
+	@echo ""
+	@echo "Development Workflow:"
+	@echo "  make dev             - Start development environment"
+	@echo "  make dev.test        - Run development test suite"
+	@echo "  make dev.clean       - Clean development environment"
+	@echo ""
+	@echo "CI/CD Commands:"
+	@echo "  make test.ci         - Run CI test suite"
+	@echo "  make clean           - Clean all environments" 

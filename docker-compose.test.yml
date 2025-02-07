@@ -1,0 +1,75 @@
+version: '3.8'
+
+x-common-variables: &common-variables
+  FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-demo-tiktoken}
+  NODE_ENV: test
+  CI: ${CI:-false}
+
+services:
+  firebase:
+    extends:
+      file: docker-compose.yml
+      service: firebase
+    container_name: tiktoken-firebase-test
+    ports:
+      - "${FIREBASE_AUTH_PORT:-9099}:9099"      # Auth emulator
+      - "${FIREBASE_STORAGE_PORT:-9199}:9199"   # Storage emulator
+      - "${FIREBASE_UI_PORT:-4000}:4000"        # Emulator UI
+    volumes:
+      - .:/app:cached
+      - firebase_data:/root/.cache/firebase
+      - ./storage.rules:/app/storage.rules:ro    # Read-only rules
+      - ./firebase.json:/app/firebase.json:ro    # Read-only config
+      - ./test/fixtures:/app/test/fixtures       # Test data persistence
+    working_dir: /app
+    environment:
+      <<: *common-variables
+      FIREBASE_TOKEN: ${FIREBASE_TOKEN}
+      GOOGLE_APPLICATION_CREDENTIALS: /app/service-account.json
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000"]
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    command: >
+      firebase emulators:start
+        --project ${FIREBASE_PROJECT_ID:-demo-tiktoken}
+        --only auth,storage
+        --import ./test/fixtures
+        --export-on-exit ./test/fixtures
+    networks:
+      - test-network
+
+  test:
+    image: node:18-slim
+    container_name: tiktoken-test
+    depends_on:
+      firebase:
+        condition: service_healthy
+    volumes:
+      - .:/app:cached
+      - node_modules:/app/node_modules
+      - coverage:/app/coverage
+      - ./test/fixtures:/app/test/fixtures:cached
+    working_dir: /app
+    environment:
+      <<: *common-variables
+      FIREBASE_STORAGE_EMULATOR_HOST: firebase:9199
+      FIREBASE_AUTH_EMULATOR_HOST: firebase:9099
+    command: npm run test:ci
+    networks:
+      - test-network
+
+volumes:
+  firebase_data:
+    name: tiktoken-firebase-data-${CI:-local}
+  node_modules:
+    name: tiktoken-node-modules-${CI:-local}
+  coverage:
+    name: tiktoken-coverage-${CI:-local}
+
+networks:
+  test-network:
+    name: tiktoken-test-network-${CI:-local}
+    driver: bridge 
