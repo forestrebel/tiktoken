@@ -2,7 +2,7 @@
 Supabase client configuration and utilities.
 """
 from functools import lru_cache
-from typing import AsyncGenerator
+from typing import AsyncContextManager
 
 from supabase import create_client, Client
 
@@ -19,11 +19,17 @@ def get_supabase() -> Client:
     )
 
 
-async def get_supabase_client() -> AsyncGenerator[Client, None]:
+class SupabaseClientManager(AsyncContextManager[Client]):
     """Async context manager for Supabase client"""
-    client = get_supabase()
-    try:
-        yield client
-    finally:
+    async def __aenter__(self) -> Client:
+        self.client = get_supabase()
+        return self.client
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         # Cleanup if needed in the future
-        pass 
+        pass
+
+
+def get_supabase_client() -> AsyncContextManager[Client]:
+    """Get Supabase client as an async context manager"""
+    return SupabaseClientManager() 

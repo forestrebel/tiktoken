@@ -20,17 +20,11 @@ var/
 .installed.cfg
 *.egg
 
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# Virtual Environment
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.venv
+venv/
+ENV/
 
 # IDE
 .idea/
@@ -47,3 +41,22 @@ docker-volumes/
 .coverage
 htmlcov/ 
 .vercel
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Firebase
+firebase-credentials.json
+**/firebase-credentials.json
+
+# Logs
+*.log
+firebase-debug.log*

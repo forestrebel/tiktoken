@@ -3,11 +3,13 @@ import RNFS from 'react-native-fs';
 import { Platform } from 'react-native';
 import { FFmpegKit, FFprobeKit, FFmpegKitConfig } from 'ffmpeg-kit-react-native';
 
+const API_URL = process.env.API_URL || 'http://localhost:5000';
 const VIDEOS_KEY = '@videos';
 const VIDEO_DIR = `${RNFS.DocumentDirectoryPath}/videos`;
 const THUMBNAIL_DIR = `${RNFS.DocumentDirectoryPath}/thumbnails`;
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const THUMBNAIL_SIZE = '320x180'; // 16:9 thumbnail size
+const STATUS_POLL_INTERVAL = 2000; // 2 seconds
 
 // Cache for validation results
 const validationCache = new Map();
@@ -49,24 +51,260 @@ async function generateFileSignature(filePath) {
  */
 export const videoService = {
   /**
-   * Initialize video and thumbnail directories
+   * Initialize video storage and check system health
    */
   async init() {
     try {
-      // Initialize FFmpeg with optimal settings
-      await FFmpegKitConfig.init();
-      await FFmpegKitConfig.enableRedirection();
-      
-      // Use parallel initialization
-      await Promise.all([
-        RNFS.exists(VIDEO_DIR).then(exists => !exists && RNFS.mkdir(VIDEO_DIR)),
-        RNFS.exists(THUMBNAIL_DIR).then(exists => !exists && RNFS.mkdir(THUMBNAIL_DIR))
-      ]);
-      
+      // Check system health first
+      const health = await this.checkHealth();
+      if (health.status !== 'ok') {
+        return {
+          status: 'error',
+          error: health.message,
+          details: health
+        };
+      }
+
+      // Ensure videos list exists
+      const videos = await AsyncStorage.getItem(VIDEOS_KEY);
+      if (!videos) {
+        await AsyncStorage.setItem(VIDEOS_KEY, JSON.stringify([]));
+      }
       return { status: 'success' };
     } catch (error) {
       console.error('Failed to initialize video service:', error);
       return { status: 'error', error };
+    }
+  },
+
+  /**
+   * Check system health
+   */
+  async checkHealth() {
+    try {
+      const response = await fetch(`${API_URL}/health`);
+      const health = await response.json();
+      
+      // Add frontend-friendly suggestions
+      if (health.status !== 'ok') {
+        health.suggestions = [
+          'Try again in a few moments',
+          'Check your internet connection',
+          'The service may be under maintenance'
+        ];
+        
+        if (health.dependencies?.ffmpeg?.error) {
+          health.suggestions.push('Video processing system unavailable');
+        }
+        if (health.storage?.error) {
+          health.suggestions.push('Storage system unavailable');
+        }
+      }
+      
+      return health;
+    } catch (error) {
+      return {
+        status: 'error',
+        message: 'Could not connect to server',
+        suggestions: [
+          'Check your internet connection',
+          'The server may be down',
+          'Try again later'
+        ]
+      };
+    }
+  },
+
+  /**
+   * Import video from file
+   */
+  async importVideo(uri) {
+    try {
+      // Check health before upload
+      const health = await this.checkHealth();
+      if (health.status !== 'ok') {
+        return {
+          status: 'error',
+          error: 'System unavailable',
+          suggestions: health.suggestions
+        };
+      }
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', {
+        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+        type: 'video/mp4',
+        name: 'video.mp4'
+      });
+
+      // Upload to backend
+      const response = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        return {
+          status: 'error',
+          error: result.error || 'Upload failed',
+          specs: result.specs,
+          suggestions: result.suggestions
+        };
+      }
+
+      // Save video metadata
+      const video = {
+        id: result.id,
+        url: result.url,
+        specs: result.specs,
+        created_at: new Date().toISOString(),
+        state: 'pending'
+      };
+
+      const videos = JSON.parse(await AsyncStorage.getItem(VIDEOS_KEY) || '[]');
+      videos.unshift(video);
+      await AsyncStorage.setItem(VIDEOS_KEY, JSON.stringify(videos));
+
+      // Start polling for status
+      this.pollVideoStatus(video.id);
+
+      return {
+        status: 'success',
+        data: video
+      };
+    } catch (error) {
+      console.error('Import failed:', error);
+      return {
+        status: 'error',
+        error: error.message || 'Import failed',
+        suggestions: [
+          'Check your internet connection',
+          'Try uploading a different video',
+          'The server may be experiencing issues'
+        ]
+      };
+    }
+  },
+
+  /**
+   * Poll video processing status
+   */
+  async pollVideoStatus(videoId) {
+    const pollStatus = async () => {
+      try {
+        const response = await fetch(`${API_URL}/videos/${videoId}/status`);
+        const status = await response.json();
+        
+        if (!response.ok) {
+          console.error('Failed to get video status:', status);
+          return false;
+        }
+
+        // Update video in storage
+        const videos = JSON.parse(await AsyncStorage.getItem(VIDEOS_KEY) || '[]');
+        const index = videos.findIndex(v => v.id === videoId);
+        
+        if (index !== -1) {
+          videos[index] = {
+            ...videos[index],
+            state: status.state,
+            error: status.error,
+            progress: status.progress
+          };
+          await AsyncStorage.setItem(VIDEOS_KEY, JSON.stringify(videos));
+        }
+
+        // Stop polling if complete or failed
+        return !['completed', 'failed'].includes(status.state);
+      } catch (error) {
+        console.error('Status poll failed:', error);
+        return false;
+      }
+    };
+
+    // Start polling
+    const poll = async () => {
+      const shouldContinue = await pollStatus();
+      if (shouldContinue) {
+        setTimeout(poll, STATUS_POLL_INTERVAL);
+      }
+    };
+
+    poll();
+  },
+
+  /**
+   * Get video metadata
+   */
+  async getVideoMetadata(videoId) {
+    try {
+      const response = await fetch(`${API_URL}/videos/${videoId}/metadata`);
+      const metadata = await response.json();
+      
+      if (!response.ok) {
+        return {
+          status: 'error',
+          error: metadata.error,
+          suggestions: metadata.suggestions
+        };
+      }
+
+      return {
+        status: 'success',
+        data: metadata
+      };
+    } catch (error) {
+      console.error('Failed to get video metadata:', error);
+      return {
+        status: 'error',
+        error: 'Failed to get video details',
+        suggestions: [
+          'Try again later',
+          'Check your internet connection',
+          'The video may have been deleted'
+        ]
+      };
+    }
+  },
+
+  /**
+   * Get list of videos
+   */
+  async getVideos() {
+    try {
+      const videos = JSON.parse(await AsyncStorage.getItem(VIDEOS_KEY) || '[]');
+      return {
+        status: 'success',
+        data: videos
+      };
+    } catch (error) {
+      console.error('Failed to get videos:', error);
+      return {
+        status: 'error',
+        error: error.message
+      };
+    }
+  },
+
+  /**
+   * Reset video library
+   */
+  async reset() {
+    try {
+      await AsyncStorage.setItem(VIDEOS_KEY, JSON.stringify([]));
+      return { status: 'success' };
+    } catch (error) {
+      console.error('Reset failed:', error);
+      return {
+        status: 'error',
+        error: error.message
+      };
     }
   },
 
@@ -216,147 +454,6 @@ export const videoService = {
       });
 
       return result;
-    }
-  },
-
-  /**
-   * Reset the video library and clean up all files
-   */
-  async reset() {
-    try {
-      // Clear stored video list first
-      await AsyncStorage.removeItem(VIDEOS_KEY);
-      
-      // Ensure directories exist
-      await Promise.all([
-        RNFS.exists(VIDEO_DIR).then(exists => !exists && RNFS.mkdir(VIDEO_DIR)),
-        RNFS.exists(THUMBNAIL_DIR).then(exists => !exists && RNFS.mkdir(THUMBNAIL_DIR))
-      ]);
-      
-      // Delete all files in video directory
-      const files = await RNFS.readDir(VIDEO_DIR);
-      await Promise.all(
-        files.map(file => RNFS.unlink(file.path).catch(err => 
-          console.warn(`Failed to delete video file ${file.name}:`, err)
-        ))
-      );
-      
-      // Delete all files in thumbnail directory
-      const thumbs = await RNFS.readDir(THUMBNAIL_DIR);
-      await Promise.all(
-        thumbs.map(thumb => RNFS.unlink(thumb.path).catch(err => 
-          console.warn(`Failed to delete thumbnail file ${thumb.name}:`, err)
-        ))
-      );
-
-      // Clear validation cache
-      validationCache.clear();
-      
-      return { status: 'success', message: 'Library reset complete' };
-    } catch (error) {
-      console.error('Reset error:', error);
-      return { 
-        status: 'error', 
-        error: error.message || 'Failed to reset library',
-        suggestions: [
-          'Try restarting the app',
-          'Check storage permissions'
-        ]
-      };
-    }
-  },
-
-  /**
-   * Import a video from external source with validation
-   */
-  async importVideo(uri) {
-    try {
-      // Check if file exists first
-      const exists = await RNFS.exists(uri);
-      if (!exists) {
-        return {
-          status: 'error',
-          error: 'Video file not found',
-          suggestions: ['Please select a different video']
-        };
-      }
-
-      // Generate file signature first to check for duplicates
-      const fileSignature = await generateFileSignature(uri);
-      const existingVideos = await this.getVideos();
-      
-      if (existingVideos.status === 'success') {
-        const duplicate = existingVideos.data.find(v => v.fileSignature === fileSignature);
-        if (duplicate) {
-          return {
-            status: 'error',
-            error: 'This video is already in your library',
-            suggestions: ['Select a different video']
-          };
-        }
-      }
-
-      // Copy to temp location and validate
-      const tempPath = `${VIDEO_DIR}/temp_${Date.now()}.mp4`;
-      await RNFS.copyFile(uri, tempPath);
-      
-      const validation = await this.validateVideo(tempPath);
-      if (validation.status === 'error') {
-        await RNFS.unlink(tempPath);
-        return validation;
-      }
-
-      // Generate filenames
-      const filename = `video_${Date.now()}.mp4`;
-      const thumbnailName = `thumb_${Date.now()}.jpg`;
-      const destPath = `${VIDEO_DIR}/${filename}`;
-      const thumbPath = `${THUMBNAIL_DIR}/${thumbnailName}`;
-      
-      // Move temp file and generate thumbnail in parallel
-      const [_, thumbnail] = await Promise.all([
-        RNFS.moveFile(tempPath, destPath),
-        this.generateThumbnail(tempPath, thumbPath)
-      ]);
-
-      if (thumbnail.status === 'error') {
-        await RNFS.unlink(destPath);
-        return thumbnail;
-      }
-      
-      const video = {
-        id: Date.now().toString(),
-        filename,
-        thumbnail: thumbnailName,
-        created_at: new Date().toISOString(),
-        imported: true,
-        fileSignature,
-        ...validation.data
-      };
-      
-      // Update video list
-      const videos = await this.getVideos();
-      if (videos.status === 'success') {
-        videos.data.unshift(video);
-        await AsyncStorage.setItem(VIDEOS_KEY, JSON.stringify(videos.data));
-        return { status: 'success', data: video };
-      }
-      return videos;
-    } catch (error) {
-      console.error('Import error:', error);
-      return { status: 'error', error: error.message || 'Failed to import video' };
-    }
-  },
-
-  /**
-   * Get all videos
-   * @returns {Promise<Object[]>}
-   */
-  async getVideos() {
-    try {
-      const data = await AsyncStorage.getItem(VIDEOS_KEY);
-      return { status: 'success', data: data ? JSON.parse(data) : [] };
-    } catch (error) {
-      return { status: 'error', error };
     }
   },
 

@@ -3,6 +3,7 @@ Application configuration management.
 """
 from functools import lru_cache
 from typing import Optional
+import os
 
 from pydantic_settings import BaseSettings
 
@@ -22,7 +23,7 @@ class Settings(BaseSettings):
     supabase_key: str
     
     class Config:
-        env_file = ".env"
+        env_file = ".env.test" if os.getenv("TESTING") else ".env"
         case_sensitive = False
 
 
