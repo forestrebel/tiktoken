@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { FFmpegKit, FFprobeKit, FFmpegKitConfig } from 'ffmpeg-kit-react-native';
 import { getStorage, ref, uploadBytes, uploadBytesResumable } from 'firebase/storage';
 import { auth } from '../config/firebase';
+import { OpenShotService } from './openshot';
 
 const API_URL = process.env.API_URL || 'http://localhost:5000';
 const VIDEOS_KEY = '@videos';
@@ -693,7 +694,58 @@ export const videoService = {
     } catch (error) {
       console.warn('Cleanup error:', error);
     }
-  }
+  },
+
+  /**
+   * Process video with OpenShot
+   * @param {string} videoPath Path to video file
+   * @param {string} creatorId Creator ID
+   * @returns {Promise<Object>} Processing result
+   */
+  async processWithOpenShot(videoPath, creatorId) {
+    try {
+      // Validate video first
+      const validation = await this.validateVideo(videoPath);
+      if (validation.status === 'error') {
+        throw new Error(validation.error);
+      }
+
+      // Create/get project
+      const project = await OpenShotService.createProject(creatorId);
+
+      // Upload to OpenShot
+      const upload = await OpenShotService.uploadVideo(
+        project.id,
+        videoPath,
+        (progress) => {
+          console.log('Upload progress:', progress);
+        }
+      );
+
+      // Process video
+      const processing = await OpenShotService.processVideo(
+        project.id,
+        upload.id
+      );
+
+      // Poll for completion
+      const pollStatus = async () => {
+        const status = await OpenShotService.getStatus(upload.id);
+        if (status.status === 'completed') {
+          return status;
+        } else if (status.status === 'failed') {
+          throw new Error('Video processing failed');
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return pollStatus();
+      };
+
+      return pollStatus();
+    } catch (error) {
+      console.error('OpenShot processing error:', error);
+      throw error;
+    }
+  },
 };
 
 // Export constants for consistent validation

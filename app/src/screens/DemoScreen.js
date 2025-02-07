@@ -13,6 +13,8 @@ import { demoVideoService } from '../services/demoVideos';
 import { demoPrepService } from '../services/demoPrep';
 import { cacheManager } from '../services/cacheManager';
 import { UploadScreen } from './UploadScreen';
+import DemoValidation from '../components/DemoValidation';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 // Demo scenario descriptions
 const DEMO_DESCRIPTIONS = {
@@ -67,6 +69,7 @@ const DemoScreen = () => {
   const [expandedInfo, setExpandedInfo] = useState(null);
   const [prepStatus, setPrepStatus] = useState({ message: '', progress: 0 });
   const [isPrepping, setIsPrepping] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
 
   // Get available demo types
   const demoTypes = demoVideoService.getAvailableTypes();
@@ -299,10 +302,10 @@ const DemoScreen = () => {
 
             <TouchableOpacity
               style={styles.checkButton}
-              onPress={handleCheckReadiness}
+              onPress={() => setShowValidation(true)}
             >
               <Text style={styles.checkButtonText}>
-                Check Status
+                Validate Demo
               </Text>
             </TouchableOpacity>
           </View>
@@ -360,6 +363,20 @@ const DemoScreen = () => {
           <Text style={styles.generatingText}>
             Generating Demo Video...
           </Text>
+        </View>
+      )}
+
+      {showValidation && (
+        <View style={styles.validationOverlay}>
+          <View style={styles.validationContainer}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowValidation(false)}
+            >
+              <Icon name="close" size={24} color="#666" />
+            </TouchableOpacity>
+            <DemoValidation />
+          </View>
         </View>
       )}
     </View>
@@ -561,6 +578,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2196f3',
     marginLeft: 10,
+  },
+  validationOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  validationContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    position: 'relative',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 1,
+    padding: 8,
   },
 });
 

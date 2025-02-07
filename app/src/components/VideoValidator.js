@@ -3,145 +3,95 @@ import {
   StyleSheet,
   View,
   Text,
-  TouchableOpacity,
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
 import Video from 'react-native-video';
 
-const PORTRAIT_RATIO = 9 / 16; // Target aspect ratio
-const RATIO_TOLERANCE = 0.1; // 10% tolerance for aspect ratio
+const PORTRAIT_RATIO = 9 / 16;
+const RATIO_TOLERANCE = 0.05; // Reduced tolerance for stricter validation
 
-const VideoValidator = ({ videoUri, onValidationComplete, onRetry }) => {
-  const [isValidating, setIsValidating] = useState(true);
+const VideoValidator = ({ videoUri, onValidationComplete }) => {
+  const [validating, setValidating] = useState(true);
   const [error, setError] = useState(null);
   const [metadata, setMetadata] = useState(null);
 
   useEffect(() => {
-    if (videoUri) {
-      setIsValidating(true);
-      setError(null);
-      setMetadata(null);
-    }
+    validateVideo();
   }, [videoUri]);
 
   const validateAspectRatio = (width, height) => {
     const ratio = width / height;
-    const targetRatio = PORTRAIT_RATIO;
-    const tolerance = RATIO_TOLERANCE;
-
-    // Check if video is portrait and close to 9:16
-    const isPortrait = height > width;
-    const ratioWithinTolerance = Math.abs(ratio - targetRatio) <= tolerance;
-
-    if (!isPortrait) {
-      throw new Error('Video must be in portrait orientation');
-    }
-
-    if (!ratioWithinTolerance) {
-      throw new Error('Video should have a 9:16 aspect ratio');
-    }
-
-    return true;
+    const difference = Math.abs(ratio - PORTRAIT_RATIO);
+    return difference <= RATIO_TOLERANCE;
   };
 
-  const handleLoad = (meta) => {
+  const validateVideo = async () => {
     try {
-      console.log('Video metadata:', meta);
-      const { width, height } = meta.naturalSize;
-      
-      // Validate aspect ratio
-      validateAspectRatio(width, height);
+      setValidating(true);
+      setError(null);
 
-      // Store metadata for future use
+      // Load video metadata
+      const meta = await new Promise((resolve, reject) => {
+        const video = new Video({
+          source: { uri: videoUri },
+          onLoad: (data) => resolve(data),
+          onError: (error) => reject(error),
+        });
+      });
+
       setMetadata(meta);
-      setIsValidating(false);
-      
-      // Report success
-      onValidationComplete?.({
-        isValid: true,
-        metadata: {
-          width,
-          height,
-          duration: meta.duration,
-          orientation: meta.orientation
-        }
+
+      // Validate aspect ratio
+      if (!validateAspectRatio(meta.width, meta.height)) {
+        throw new Error('Please use a vertical (portrait) video');
+      }
+
+      // Validate resolution
+      if (meta.width !== 720 || meta.height !== 1280) {
+        throw new Error('Video must be 720x1280 resolution');
+      }
+
+      // Success
+      onValidationComplete?.({ 
+        status: 'success',
+        metadata: meta 
       });
     } catch (error) {
       console.error('Validation error:', error);
-      setError(error.message);
-      setIsValidating(false);
-      
-      // Report failure
-      onValidationComplete?.({
-        isValid: false,
-        error: error.message
+      setError(error.message || 'Unable to validate video');
+      onValidationComplete?.({ 
+        status: 'error',
+        error: error.message 
       });
+    } finally {
+      setValidating(false);
     }
-  };
-
-  const handleError = (error) => {
-    console.error('Video loading error:', error);
-    setError('Unable to load video for validation');
-    setIsValidating(false);
-    
-    onValidationComplete?.({
-      isValid: false,
-      error: 'Video format not supported'
-    });
-  };
-
-  const handleRetry = () => {
-    setIsValidating(true);
-    setError(null);
-    setMetadata(null);
-    onRetry?.();
   };
 
   return (
     <View style={styles.container}>
-      {/* Hidden video for validation */}
-      {videoUri && (
-        <Video
-          source={{ uri: videoUri }}
-          style={styles.hiddenVideo}
-          onLoad={handleLoad}
-          onError={handleError}
-          paused={true}
-          muted={true}
-        />
+      {validating ? (
+        <View style={styles.content}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={styles.validatingText}>
+            Checking video format...
+          </Text>
+        </View>
+      ) : error ? (
+        <View style={styles.content}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.helpText}>
+            Try recording in portrait mode with your phone held vertically
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.content}>
+          <Text style={styles.successText}>
+            ✓ Video format looks good
+          </Text>
+        </View>
       )}
-
-      {/* Validation UI */}
-      <View style={styles.content}>
-        {isValidating ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.loadingText}>
-              Validating video format...
-            </Text>
-          </View>
-        ) : error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorTitle}>Format Error</Text>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={handleRetry}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.retryText}>Try Another Video</Text>
-            </TouchableOpacity>
-          </View>
-        ) : metadata ? (
-          <View style={styles.successContainer}>
-            <Text style={styles.successTitle}>Video Format Valid</Text>
-            <Text style={styles.successText}>
-              Portrait mode confirmed ({metadata.naturalSize.width}x{metadata.naturalSize.height})
-            </Text>
-          </View>
-        ) : null}
-      </View>
     </View>
   );
 };
@@ -149,69 +99,34 @@ const VideoValidator = ({ videoUri, onValidationComplete, onRetry }) => {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    aspectRatio: 9/16,
-    backgroundColor: '#f5f5f5',
+    padding: 16,
+    backgroundColor: '#fff',
     borderRadius: 12,
-    overflow: 'hidden',
-  },
-  hiddenVideo: {
-    width: 1,
-    height: 1,
-    opacity: 0,
   },
   content: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
   },
-  loadingContainer: {
-    alignItems: 'center',
-  },
-  loadingText: {
+  validatingText: {
     marginTop: 12,
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
-  },
-  errorContainer: {
-    alignItems: 'center',
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ff3b30',
-    marginBottom: 8,
   },
   errorText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    color: '#f44336',
     textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  successContainer: {
-    alignItems: 'center',
-  },
-  successTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#34c759',
     marginBottom: 8,
   },
-  successText: {
+  helpText: {
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
+  },
+  successText: {
+    fontSize: 16,
+    color: '#4CAF50',
+    fontWeight: '600',
   },
 });
 

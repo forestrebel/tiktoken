@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -23,48 +23,30 @@ const VideoPreview = ({ videoUri, onUpload, onCancel }) => {
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState(null);
 
-  const togglePlayback = () => {
-    setIsPlaying(!isPlaying);
-  };
+  // Preload video on mount
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.seek(0);
+    }
+  }, []);
 
   const handleLoad = (meta) => {
     console.log('Video loaded:', meta);
     setDuration(meta.duration);
     setIsLoading(false);
     setError(null);
-  };
-
-  const handleProgress = ({ currentTime }) => {
-    setCurrentTime(currentTime);
-  };
-
-  const handleEnd = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    videoRef.current?.seek(0);
+    // Auto-play preview
+    setIsPlaying(true);
   };
 
   const handleError = (error) => {
     console.error('Video preview error:', error);
-    setError('Unable to play video');
+    setError('Unable to preview nature video');
     setIsLoading(false);
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
-  const handleUpload = () => {
-    // Stop playback before upload
-    setIsPlaying(false);
-    onUpload?.();
   };
 
   return (
     <View style={styles.container}>
-      {/* Video Player */}
       <View style={styles.videoContainer}>
         <Video
           ref={videoRef}
@@ -72,76 +54,56 @@ const VideoPreview = ({ videoUri, onUpload, onCancel }) => {
           style={styles.video}
           resizeMode="cover"
           onLoad={handleLoad}
-          onProgress={handleProgress}
-          onEnd={handleEnd}
           onError={handleError}
           paused={!isPlaying}
-          repeat={false}
+          repeat={true}
+          playInBackground={false}
+          playWhenInactive={false}
+          ignoreSilentSwitch="ignore"
+          bufferConfig={{
+            minBufferMs: 1000,
+            maxBufferMs: 5000,
+            bufferForPlaybackMs: 1000,
+            bufferForPlaybackAfterRebufferMs: 2000
+          }}
         />
 
-        {/* Loading Overlay */}
         {isLoading && (
           <View style={styles.overlay}>
-            <ActivityIndicator size="large" color="#fff" />
+            <ActivityIndicator size="large" color="#4CAF50" />
+            <Text style={styles.loadingText}>Preparing preview...</Text>
           </View>
         )}
 
-        {/* Error Overlay */}
         {error && (
           <View style={styles.overlay}>
             <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={() => {
+                setError(null);
+                setIsLoading(true);
+                videoRef.current?.seek(0);
+              }}
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
           </View>
         )}
-
-        {/* Playback Controls */}
-        {!isLoading && !error && (
-          <TouchableOpacity
-            style={styles.playButton}
-            onPress={togglePlayback}
-            activeOpacity={0.8}
-          >
-            <Icon
-              name={isPlaying ? 'pause' : 'play'}
-              size={32}
-              color="#fff"
-            />
-          </TouchableOpacity>
-        )}
       </View>
 
-      {/* Progress Bar */}
-      <View style={styles.progressContainer}>
-        <View 
-          style={[
-            styles.progressBar,
-            { width: `${(currentTime / duration) * 100}%` }
-          ]}
-        />
-        <Text style={styles.timeText}>
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </Text>
-      </View>
-
-      {/* Action Buttons */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.button, styles.cancelButton]}
+      <View style={styles.controls}>
+        <TouchableOpacity 
+          style={[styles.button, styles.cancelButton]} 
           onPress={onCancel}
-          activeOpacity={0.8}
         >
-          <Text style={[styles.buttonText, styles.cancelText]}>
-            Cancel
-          </Text>
+          <Text style={styles.buttonText}>Retake</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.uploadButton]}
-          onPress={handleUpload}
-          activeOpacity={0.8}
+        <TouchableOpacity 
+          style={[styles.button, styles.uploadButton]} 
+          onPress={onUpload}
         >
-          <Text style={[styles.buttonText, styles.uploadText]}>
-            Upload Video
-          </Text>
+          <Text style={styles.buttonText}>Use This Video</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -160,17 +122,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderRadius: 12,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    marginBottom: 16,
   },
   video: {
     width: '100%',
@@ -178,9 +130,14 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    color: '#fff',
+    marginTop: 12,
+    fontSize: 14,
   },
   errorText: {
     color: '#fff',
@@ -188,71 +145,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 20,
   },
-  playButton: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [
-      { translateX: -24 },
-      { translateY: -24 }
-    ],
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressContainer: {
-    width: VIDEO_WIDTH,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  progressBar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: 2,
-    backgroundColor: '#007AFF',
-  },
-  timeText: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    fontSize: 12,
-    color: '#666',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 16,
-    gap: 12,
-  },
-  button: {
+  retryButton: {
+    marginTop: 12,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#4CAF50',
   },
-  buttonText: {
+  retryText: {
+    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
-  cancelButton: {
-    backgroundColor: '#f8f8f8',
+  controls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: VIDEO_WIDTH,
+    marginTop: 8,
   },
-  cancelText: {
-    color: '#666',
+  button: {
+    flex: 1,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
   },
   uploadButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#4CAF50',
   },
-  uploadText: {
-    color: '#fff',
-  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  }
 });
 
 export default VideoPreview; 

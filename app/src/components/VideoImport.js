@@ -20,7 +20,7 @@ const VIDEO_CONSTRAINTS = {
   formats: ['mp4'],
   maxSizeMB: 100,
   minDurationSec: 1,
-  maxDurationSec: 300, // 5 minutes
+  maxDurationSec: 60, // Reduced to 60 seconds for nature content
   aspectRatio: {
     width: 9,
     height: 16
@@ -250,17 +250,17 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
             )}
           </View>
         ) : (
-          <Text style={styles.buttonText}>+</Text>
+          <Text style={styles.buttonText}>Import Nature Video</Text>
         )}
       </TouchableOpacity>
       <Text style={styles.helpText}>
         {hasPermission 
-          ? `Select a portrait nature video (MP4, max ${VIDEO_CONSTRAINTS.maxSizeMB}MB)`
-          : 'Storage permission required'}
+          ? 'Select a vertical nature video (60 sec max)'
+          : 'Storage access required for nature videos'}
       </Text>
       {hasPermission && (
         <Text style={styles.infoText}>
-          Videos should be in portrait mode (9:16)
+          Best for waterfalls, trees, and landscapes in portrait mode
         </Text>
       )}
     </View>
@@ -272,10 +272,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   button: {
-    width: 44,
+    width: 200,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#4CAF50', // Nature-themed green
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -296,9 +296,8 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 28,
-    fontWeight: '300',
-    marginTop: -2,
+    fontSize: 16,
+    fontWeight: '600',
   },
   loadingContainer: {
     alignItems: 'center',
