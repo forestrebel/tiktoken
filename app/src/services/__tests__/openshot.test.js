@@ -15,7 +15,9 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 const TIMING = {
   IMPORT: 3000,    // 3 seconds for import
   PREVIEW: 3000,   // 3 seconds for preview
-  RECOVERY: 1000   // 1 second for recovery
+  RECOVERY: 1000,  // 1 second for recovery
+  TRANSITION: 250, // 250ms for transitions
+  VALIDATION: 500  // 500ms for format validation
 };
 
 describe('OpenShot Integration', () => {
@@ -102,6 +104,27 @@ describe('OpenShot Integration', () => {
       expect(status.status).toBe('completed');
       expect(Date.now() - start).toBeLessThan(TIMING.PREVIEW);
     });
+
+    it('should validate format within 500ms', async () => {
+      const start = Date.now();
+      
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          status: 'completed',
+          metadata: {
+            width: 720,
+            height: 1280,
+            orientation: 'portrait'
+          }
+        })
+      });
+
+      const result = await OpenShotService.processVideo('project-123', 'video-123');
+      
+      expect(result.status).toBe('completed');
+      expect(Date.now() - start).toBeLessThan(TIMING.VALIDATION);
+    });
   });
 
   describe('Recovery Story (1s)', () => {
@@ -141,6 +164,20 @@ describe('OpenShot Integration', () => {
         expect(retry.status).toBe('completed');
         expect(Date.now() - start).toBeLessThan(TIMING.IMPORT);
       }
+    });
+
+    it('should transition states within 250ms', async () => {
+      const start = Date.now();
+      
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: 'processing' })
+      });
+
+      const result = await OpenShotService.getStatus('video-123');
+      
+      expect(result.status).toBe('processing');
+      expect(Date.now() - start).toBeLessThan(TIMING.TRANSITION);
     });
   });
 

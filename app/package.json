@@ -33,6 +33,7 @@
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/stack": "^7.1.1",
     "ffmpeg-kit-react-native": "^6.0.2",
+    "firebase": "^11.3.0",
     "react": "18.3.1",
     "react-native": "0.77.0",
     "react-native-document-picker": "^9.3.1",
