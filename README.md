@@ -12,40 +12,57 @@ A high-performance video processing system for 9:16 portrait videos with real-ti
 
 ## Quick Start
 
-### Prerequisites
+1. Install Android Studio and create a Pixel7Pro AVD
+2. Run the app:
+   ```bash
+   make start
+   ```
+
+That's it! The command will:
+- Check and install dependencies
+- Set up the environment
+- Start the emulator
+- Launch the app
+
+## Available Commands
 
 ```bash
-# Install dependencies
-pipenv install
-
-# Start backend services
-docker-compose up -d
-
-# Run backend
-cd backend
-uvicorn main:app --reload
+make check    # Check environment and dependencies
+make install  # Install project dependencies
+make setup    # Set up environment
+make start    # Start the app (emulator + metro + app)
+make stop     # Stop all services
+make clean    # Clean up everything
 ```
 
-### System Architecture
+## Troubleshooting
 
-```
-Frontend (React Native)
-  │
-  ├─ Video Upload
-  │   └─ Multipart Form Data
-  │
-Backend (FastAPI)
-  ├─ Video Validation
-  │   ├─ FFmpeg Processing
-  │   └─ Format Checking
-  │
-  ├─ Status Tracking
-  │   ├─ Processing State
-  │   └─ Progress Updates
-  │
-  └─ Storage (Local)
-      └─ Processed Videos
-```
+If you see any errors, try these steps:
+
+1. Clean and restart:
+   ```bash
+   make clean
+   make start
+   ```
+
+2. Check environment:
+   ```bash
+   make check
+   ```
+
+3. Verify Android Studio setup:
+   - Open Android Studio
+   - Tools -> Device Manager
+   - Create Pixel7Pro AVD if missing
+
+## System Requirements
+
+- Java 11 (OpenJDK)
+- Android Studio
+- Node.js & Yarn
+- Linux/macOS
+
+The `make check` command will help install missing dependencies.
 
 ## API Endpoints
 

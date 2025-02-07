@@ -5,6 +5,16 @@
 ANDROID_DIR = app/android
 VIDEO_MAX_SIZE = 104857600  # 100MB in bytes
 SECRETS_DIR = .secrets
+ANDROID_HOME ?= $(HOME)/Android/Sdk
+JAVA_HOME ?= /usr/lib/jvm/java-11-openjdk-amd64
+SHELL := /bin/bash
+PROJECT_NAME := tiktoken
+APP_DIR := app
+
+# Colors for output
+GREEN := \033[0;32m
+RED := \033[0;31m
+NC := \033[0m
 
 # Demo environment
 demo: check-deps install-deps setup-android
@@ -371,4 +381,79 @@ help.firebase:
 	@echo ""
 	@echo "CI/CD Commands:"
 	@echo "  make test.ci         - Run CI test suite"
-	@echo "  make clean           - Clean all environments" 
+	@echo "  make clean           - Clean all environments"
+
+# Default target
+all: help
+
+# Initialize project
+init:
+	@echo -e "$(GREEN)Initializing React Native project...$(NC)"
+	@npx react-native init $(PROJECT_NAME) --template react-native-template-typescript
+	@echo -e "$(GREEN)Project initialized$(NC)"
+
+# Check environment and dependencies
+check:
+	@echo -e "$(GREEN)Checking environment...$(NC)"
+	@command -v java >/dev/null 2>&1 || { echo -e "$(RED)Java not found. Installing...$(NC)" && sudo apt-get update && sudo apt-get install -y openjdk-11-jdk; }
+	@command -v adb >/dev/null 2>&1 || { echo -e "$(RED)ADB not found. Installing...$(NC)" && sudo apt-get install -y adb; }
+	@command -v yarn >/dev/null 2>&1 || { echo -e "$(RED)Yarn not found. Installing...$(NC)" && sudo npm install -g yarn; }
+	@command -v npx >/dev/null 2>&1 || { echo -e "$(RED)NPX not found. Installing...$(NC)" && sudo npm install -g npx; }
+	@test -d "$(ANDROID_HOME)" || { echo -e "$(RED)Android SDK not found at $(ANDROID_HOME)$(NC)"; exit 1; }
+	@test -d "$(ANDROID_HOME)/emulator" || { echo -e "$(RED)Android emulator not found$(NC)"; exit 1; }
+	@$(ANDROID_HOME)/emulator/emulator -list-avds | grep -q "Pixel7Pro" || { echo -e "$(RED)Pixel7Pro AVD not found. Please create it in Android Studio$(NC)"; exit 1; }
+
+# Install dependencies
+install: check
+	@echo -e "$(GREEN)Installing dependencies...$(NC)"
+	@cd $(APP_DIR) && yarn install
+	@cd $(APP_DIR)/android && chmod +x gradlew && ./gradlew clean
+
+# Set up environment
+setup: install
+	@echo -e "$(GREEN)Setting up environment...$(NC)"
+	@cd $(APP_DIR) && mkdir -p android/app/src/main/assets android/app/src/main/res/raw
+	@cd $(APP_DIR) && npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+# Start the app (emulator + metro + app)
+start: setup
+	@echo -e "$(GREEN)Starting services...$(NC)"
+	@# Start emulator in background
+	@$(ANDROID_HOME)/emulator/emulator -avd Pixel7Pro -no-snapshot-load -no-audio & echo $$! > .emulator.pid
+	@echo -e "$(GREEN)Waiting for emulator...$(NC)"
+	@adb wait-for-device
+	@while [ "$$(adb shell getprop sys.boot_completed 2>/dev/null)" != "1" ]; do sleep 2; done
+	@# Start Metro in background
+	@cd $(APP_DIR) && yarn start --reset-cache & echo $$! > ../.metro.pid
+	@sleep 5
+	@# Install and launch app
+	@cd $(APP_DIR) && yarn android
+	@echo -e "$(GREEN)App is running! Use 'make stop' to clean up$(NC)"
+
+# Stop all services
+stop:
+	@echo -e "$(GREEN)Stopping services...$(NC)"
+	@-kill $$(cat .emulator.pid 2>/dev/null) 2>/dev/null || true
+	@-kill $$(cat .metro.pid 2>/dev/null) 2>/dev/null || true
+	@-rm -f .emulator.pid .metro.pid
+	@-adb emu kill >/dev/null 2>&1 || true
+	@echo -e "$(GREEN)All services stopped$(NC)"
+
+# Clean up everything
+clean: stop
+	@echo -e "$(GREEN)Cleaning up...$(NC)"
+	@cd $(APP_DIR) && rm -rf node_modules android/app/build android/.gradle
+	@cd $(APP_DIR)/android && ./gradlew clean
+	@cd $(APP_DIR) && yarn cache clean
+	@echo -e "$(GREEN)Cleanup complete$(NC)"
+
+# Show help
+help:
+	@echo "Available commands:"
+	@echo "  make check    - Check environment and dependencies"
+	@echo "  make install  - Install project dependencies"
+	@echo "  make setup    - Set up environment"
+	@echo "  make start    - Start the app (emulator + metro + app)"
+	@echo "  make stop     - Stop all services"
+	@echo "  make clean    - Clean up everything"
+	@echo "  make help     - Show this help message" 
