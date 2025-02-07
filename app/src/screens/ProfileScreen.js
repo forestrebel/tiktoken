@@ -32,12 +32,12 @@ export default function ProfileScreen({ navigation }) {
   const handleImportVideo = async () => {
     try {
       setLoading(true);
-      
+
       // Pick video file
       const result = await DocumentPicker.pick({
         type: [DocumentPicker.types.video],
       });
-      
+
       // Import and refresh list
       const importResult = await videoService.importVideo(result.uri);
       if (importResult.status === 'success') {
@@ -126,4 +126,4 @@ const styles = StyleSheet.create({
     marginTop: 30,
     fontSize: 16,
   },
-}); 
+});

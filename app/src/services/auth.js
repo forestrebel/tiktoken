@@ -16,7 +16,7 @@ export const authService = {
       const user = {
         id: Date.now().toString(),
         email,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
       return { status: 'success', data: user };
@@ -49,5 +49,5 @@ export const authService = {
     } catch (error) {
       return { status: 'error', error };
     }
-  }
-}; 
+  },
+};

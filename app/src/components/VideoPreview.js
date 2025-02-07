@@ -64,7 +64,7 @@ const VideoPreview = ({ videoUri, onUpload, onCancel }) => {
             minBufferMs: 1000,
             maxBufferMs: 5000,
             bufferForPlaybackMs: 1000,
-            bufferForPlaybackAfterRebufferMs: 2000
+            bufferForPlaybackAfterRebufferMs: 2000,
           }}
         />
 
@@ -78,7 +78,7 @@ const VideoPreview = ({ videoUri, onUpload, onCancel }) => {
         {error && (
           <View style={styles.overlay}>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.retryButton}
               onPress={() => {
                 setError(null);
@@ -93,14 +93,14 @@ const VideoPreview = ({ videoUri, onUpload, onCancel }) => {
       </View>
 
       <View style={styles.controls}>
-        <TouchableOpacity 
-          style={[styles.button, styles.cancelButton]} 
+        <TouchableOpacity
+          style={[styles.button, styles.cancelButton]}
           onPress={onCancel}
         >
           <Text style={styles.buttonText}>Retake</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.button, styles.uploadButton]} 
+        <TouchableOpacity
+          style={[styles.button, styles.uploadButton]}
           onPress={onUpload}
         >
           <Text style={styles.buttonText}>Use This Video</Text>
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
-  }
+  },
 });
 
-export default VideoPreview; 
+export default VideoPreview;

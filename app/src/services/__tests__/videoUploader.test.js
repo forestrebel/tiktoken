@@ -12,7 +12,7 @@ describe('VideoUploader', () => {
       width: 720,
       height: 1280,
       fps: 30,
-      duration: 45
+      duration: 45,
     };
 
     it('accepts valid metadata', () => {
@@ -25,7 +25,7 @@ describe('VideoUploader', () => {
       const invalidMetadata = {
         ...validMetadata,
         width: 1080,
-        height: 1920
+        height: 1920,
       };
 
       expect(() => {
@@ -36,7 +36,7 @@ describe('VideoUploader', () => {
     it('rejects invalid FPS', () => {
       const invalidMetadata = {
         ...validMetadata,
-        fps: 60
+        fps: 60,
       };
 
       expect(() => {
@@ -47,7 +47,7 @@ describe('VideoUploader', () => {
     it('rejects too long duration', () => {
       const invalidMetadata = {
         ...validMetadata,
-        duration: 90
+        duration: 90,
       };
 
       expect(() => {
@@ -58,7 +58,7 @@ describe('VideoUploader', () => {
     it('rejects missing width', () => {
       const invalidMetadata = {
         ...validMetadata,
-        width: undefined
+        width: undefined,
       };
 
       expect(() => {
@@ -69,7 +69,7 @@ describe('VideoUploader', () => {
     it('rejects missing height', () => {
       const invalidMetadata = {
         ...validMetadata,
-        height: undefined
+        height: undefined,
       };
 
       expect(() => {
@@ -80,7 +80,7 @@ describe('VideoUploader', () => {
     it('rejects missing fps', () => {
       const invalidMetadata = {
         ...validMetadata,
-        fps: undefined
+        fps: undefined,
       };
 
       expect(() => {
@@ -91,7 +91,7 @@ describe('VideoUploader', () => {
     it('rejects missing duration', () => {
       const invalidMetadata = {
         ...validMetadata,
-        duration: undefined
+        duration: undefined,
       };
 
       expect(() => {
@@ -131,27 +131,27 @@ describe('VideoUploader', () => {
       width: 720,
       height: 1280,
       fps: 30,
-      duration: 45
+      duration: 45,
     };
 
     it('transforms metadata to storage format', () => {
       const transformed = uploader.transformMetadataForStorage(validMetadata);
-      
+
       expect(transformed).toEqual({
         contentType: 'video/mp4',
         customMetadata: {
           width: '720',
           height: '1280',
           fps: '30',
-          duration: '45'
-        }
+          duration: '45',
+        },
       });
     });
 
     it('validates metadata before transformation', () => {
       const invalidMetadata = {
         ...validMetadata,
-        width: 1080 // Invalid width
+        width: 1080, // Invalid width
       };
 
       expect(() => {
@@ -161,11 +161,11 @@ describe('VideoUploader', () => {
 
     it('maintains type safety in transformation', () => {
       const transformed = uploader.transformMetadataForStorage(validMetadata);
-      
+
       // Check that all values are strings
       Object.values(transformed.customMetadata).forEach(value => {
         expect(typeof value).toBe('string');
       });
     });
   });
-}); 
+});

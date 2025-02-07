@@ -9,7 +9,7 @@ import {
   Text,
 } from 'react-native';
 import { videoService } from '../services/video';
-import Animated, { 
+import Animated, {
   FadeIn,
   Layout,
 } from 'react-native-reanimated';
@@ -24,7 +24,7 @@ const ITEM_HEIGHT = (ITEM_WIDTH * 16) / 9; // Portrait videos (9:16)
 
 // Performance optimization: Memoize empty state
 const EmptyState = React.memo(({ onImport }) => (
-  <Animated.View 
+  <Animated.View
     style={styles.emptyContainer}
     entering={FadeIn.duration(200)} // Reduced for performance
   >
@@ -33,7 +33,7 @@ const EmptyState = React.memo(({ onImport }) => (
     <Text style={styles.emptyText}>
       Share the beauty of nature in portrait mode
     </Text>
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.importButton}
       onPress={onImport}
       activeOpacity={0.8}
@@ -73,13 +73,13 @@ const VideoGridItem = React.memo(({ video, onPress, isLoading }) => {
             defaultSource={require('../assets/nature-placeholder.png')}
           />
         ) : placeholderIcon}
-        
+
         {isLoading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator color="#2E7D32" size="small" />
           </View>
         )}
-        
+
         <View style={styles.itemInfo}>
           <Text style={styles.itemTitle} numberOfLines={1}>
             {video.title || 'Nature Moment'}
@@ -209,4 +209,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-}); 
+});

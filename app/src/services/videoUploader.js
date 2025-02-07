@@ -29,22 +29,22 @@ export class VideoUploader {
       minFps: 29.97,
       maxFps: 30,
       maxDuration: 60,
-      ...limits
+      ...limits,
     };
   }
 
   /**
    * Validates video metadata against limits
-   * @param {VideoMetadata} metadata 
+   * @param {VideoMetadata} metadata
    * @throws {VideoUploadError}
    */
   validateMetadata(metadata) {
     // Check required fields
     const missingFields = [];
-    if (!metadata.width) missingFields.push('width');
-    if (!metadata.height) missingFields.push('height');
-    if (!metadata.fps) missingFields.push('fps');
-    if (!metadata.duration) missingFields.push('duration');
+    if (!metadata.width) {missingFields.push('width');}
+    if (!metadata.height) {missingFields.push('height');}
+    if (!metadata.fps) {missingFields.push('fps');}
+    if (!metadata.duration) {missingFields.push('duration');}
 
     if (missingFields.length > 0) {
       throw VideoUploadError.missingMetadata(missingFields);
@@ -57,7 +57,7 @@ export class VideoUploader {
         metadata.height,
         {
           width: this.limits.width,
-          height: this.limits.height
+          height: this.limits.height,
         }
       );
     }
@@ -66,7 +66,7 @@ export class VideoUploader {
     if (metadata.fps < this.limits.minFps || metadata.fps > this.limits.maxFps) {
       throw VideoUploadError.invalidFps(metadata.fps, {
         min: this.limits.minFps,
-        max: this.limits.maxFps
+        max: this.limits.maxFps,
       });
     }
 
@@ -81,7 +81,7 @@ export class VideoUploader {
 
   /**
    * Validates video file properties
-   * @param {File} file 
+   * @param {File} file
    * @throws {VideoUploadError}
    */
   validateFile(file) {
@@ -96,7 +96,7 @@ export class VideoUploader {
 
   /**
    * Transforms metadata for Firebase Storage
-   * @param {VideoMetadata} metadata 
+   * @param {VideoMetadata} metadata
    * @returns {{contentType: string, customMetadata: Object}}
    */
   transformMetadataForStorage(metadata) {
@@ -110,8 +110,8 @@ export class VideoUploader {
         width: metadata.width.toString(),
         height: metadata.height.toString(),
         fps: metadata.fps.toString(),
-        duration: metadata.duration.toString()
-      }
+        duration: metadata.duration.toString(),
+      },
     };
   }
 
@@ -157,8 +157,8 @@ export class VideoUploader {
           ...storageMetadata,
           customMetadata: {
             ...storageMetadata.customMetadata,
-            userId
-          }
+            userId,
+          },
         });
 
         return videoRef.fullPath;
@@ -177,4 +177,4 @@ export class VideoUploader {
       throw VideoUploadError.uploadFailed(error);
     }
   }
-} 
+}

@@ -6,7 +6,7 @@ import RNFS from 'react-native-fs';
 // Video format validation
 const SUPPORTED_FORMATS = {
   'video/mp4': ['avc1', 'h264'],  // H.264 codec
-  'video/quicktime': ['avc1']     // MOV format
+  'video/quicktime': ['avc1'],     // MOV format
 };
 
 const MAX_BITRATE = 5000000; // 5 Mbps max for smooth playback
@@ -47,7 +47,7 @@ const VideoPlayer = ({ url, onError, onProgress }) => {
         if (file.name.endsWith('.mp4') || file.name.endsWith('.mov')) {
           const stats = await RNFS.stat(file.path);
           const fileAge = (now - new Date(stats.mtime)) / (1000 * 60 * 60);
-          
+
           if (fileAge > CACHE_EXPIRY_HOURS) {
             await RNFS.unlink(file.path);
           }
@@ -76,13 +76,13 @@ const VideoPlayer = ({ url, onError, onProgress }) => {
       if (url.startsWith('http')) {
         const filename = url.split('/').pop();
         const localPath = `${RNFS.CachesDirectoryPath}/${filename}`;
-        
+
         // Check existing cache
         const exists = await RNFS.exists(localPath);
         if (exists) {
           const stats = await RNFS.stat(localPath);
           const fileAge = (new Date() - new Date(stats.mtime)) / (1000 * 60 * 60);
-          
+
           if (fileAge <= CACHE_EXPIRY_HOURS) {
             setLocalUrl(`file://${localPath}`);
             return;
@@ -100,11 +100,11 @@ const VideoPlayer = ({ url, onError, onProgress }) => {
           progress: (response) => {
             const progress = response.bytesWritten / response.contentLength;
             // You can add a download progress indicator if needed
-          }
+          },
         });
 
         const result = await download.promise;
-        
+
         if (result.statusCode === 200) {
           setLocalUrl(`file://${localPath}`);
         } else {
@@ -121,7 +121,7 @@ const VideoPlayer = ({ url, onError, onProgress }) => {
     } catch (error) {
       console.error('Video caching error:', error);
       setError('Failed to load video');
-      if (onError) onError(error);
+      if (onError) {onError(error);}
     }
   };
 
@@ -158,7 +158,7 @@ const VideoPlayer = ({ url, onError, onProgress }) => {
   const handleError = (error) => {
     console.error('Video playback error:', error);
     let userMessage = 'An error occurred during playback';
-    
+
     // Enhanced error handling
     switch (error.errorCode) {
       case -1004:
@@ -178,9 +178,9 @@ const VideoPlayer = ({ url, onError, onProgress }) => {
           userMessage = 'Unsupported video format';
         }
     }
-    
+
     setError(userMessage);
-    if (onError) onError({ ...error, userMessage });
+    if (onError) {onError({ ...error, userMessage });}
   };
 
   const handleProgress = (data) => {
@@ -188,7 +188,7 @@ const VideoPlayer = ({ url, onError, onProgress }) => {
     if (data.playableDuration < 1 && data.currentTime > 0) {
       console.warn('Playback buffer warning');
     }
-    if (onProgress) onProgress(data);
+    if (onProgress) {onProgress(data);}
   };
 
   const togglePlayback = () => {
@@ -227,12 +227,12 @@ const VideoPlayer = ({ url, onError, onProgress }) => {
               minBufferMs: 1500,
               maxBufferMs: 6000,
               bufferForPlaybackMs: 1500,
-              bufferForPlaybackAfterRebufferMs: 3000
+              bufferForPlaybackAfterRebufferMs: 3000,
             }}
             androidHardwareAcceleration="true"
             reportBandwidth={true}
             textTracks={[]}
-            selectedTextTrack={{ type: "disabled" }}
+            selectedTextTrack={{ type: 'disabled' }}
             onBandwidthUpdate={(data) => {
               if (data.bitrate > MAX_BITRATE) {
                 console.warn('High bandwidth usage detected');
@@ -289,4 +289,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VideoPlayer; 
+export default VideoPlayer;

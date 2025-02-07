@@ -33,7 +33,7 @@ const ShareSuccess = ({ videoPath, onDone }) => {
     const shareUrl = `https://nature.app/watch/${encodeURIComponent(videoPath)}`;
     Clipboard.setString(shareUrl);
     setCopied(true);
-    
+
     // Reset copied state after 2 seconds
     setTimeout(() => {
       setCopied(false);
@@ -185,4 +185,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ShareSuccess; 
+export default ShareSuccess;

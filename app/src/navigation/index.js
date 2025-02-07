@@ -21,26 +21,26 @@ export function Navigation({ isSignedIn }) {
       <Stack.Navigator>
         {!isSignedIn ? (
           // Auth flow
-          <Stack.Screen 
-            name="SignIn" 
+          <Stack.Screen
+            name="SignIn"
             component={SignInScreen}
             options={{ headerShown: false }}
           />
         ) : (
           // Main app flow
           <>
-            <Stack.Screen 
-              name="Record" 
+            <Stack.Screen
+              name="Record"
               component={RecordScreen}
               options={{ title: 'Record Video' }}
             />
-            <Stack.Screen 
-              name="View" 
+            <Stack.Screen
+              name="View"
               component={ViewScreen}
               options={{ title: 'View Recording' }}
             />
-            <Stack.Screen 
-              name="Profile" 
+            <Stack.Screen
+              name="Profile"
               component={ProfileScreen}
               options={{ title: 'My Profile' }}
             />
@@ -49,4 +49,4 @@ export function Navigation({ isSignedIn }) {
       </Stack.Navigator>
     </NavigationContainer>
   );
-} 
+}

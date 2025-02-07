@@ -59,7 +59,7 @@ class DemoPreparationService {
 
       return {
         status: 'success',
-        message: 'All demo videos prepared and cached'
+        message: 'All demo videos prepared and cached',
       };
     } catch (error) {
       console.error('Demo preparation failed:', error);
@@ -100,7 +100,7 @@ class DemoPreparationService {
     if (!this.isPrepped) {
       return {
         ready: false,
-        message: 'Demo not prepared. Run preparation first.'
+        message: 'Demo not prepared. Run preparation first.',
       };
     }
 
@@ -108,12 +108,12 @@ class DemoPreparationService {
       await this.verifyCacheState();
       return {
         ready: true,
-        message: 'Demo ready for recording'
+        message: 'Demo ready for recording',
       };
     } catch (error) {
       return {
         ready: false,
-        message: `Demo not ready: ${error.message}`
+        message: `Demo not ready: ${error.message}`,
       };
     }
   }
@@ -124,9 +124,9 @@ class DemoPreparationService {
   getProgress() {
     return {
       isPrepped: this.isPrepped,
-      progress: this.prepProgress
+      progress: this.prepProgress,
     };
   }
 }
 
-export const demoPrepService = new DemoPreparationService(); 
+export const demoPrepService = new DemoPreparationService();

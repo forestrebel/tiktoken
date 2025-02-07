@@ -65,7 +65,7 @@ export default function ViewScreen({ route }) {
   }
 
   // For demo videos, use a bundled asset
-  const source = video.id.startsWith('demo') 
+  const source = video.id.startsWith('demo')
     ? require('../assets/demo1.mp4')  // This will be our demo video
     : { uri: video.uri || videoService.getVideoPath(video.filename) };
 
@@ -94,4 +94,4 @@ const styles = StyleSheet.create({
     color: '#ff4444',
     fontSize: 16,
   },
-}); 
+});

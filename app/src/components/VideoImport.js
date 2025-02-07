@@ -23,12 +23,12 @@ const VIDEO_CONSTRAINTS = {
   maxDurationSec: 60, // Reduced to 60 seconds for nature content
   aspectRatio: {
     width: 9,
-    height: 16
+    height: 16,
   },
   resolution: {
     width: 720,
-    height: 1280
-  }
+    height: 1280,
+  },
 };
 
 const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
@@ -91,9 +91,9 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       name: file.name,
       type: file.type,
       size: file.size,
-      uri: file.uri
+      uri: file.uri,
     });
-    
+
     // Basic validation
     if (!file || !file.uri) {
       throw new Error('Invalid file selected');
@@ -110,7 +110,7 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
     const format = file.type?.toLowerCase();
     const extension = file.name.split('.').pop()?.toLowerCase();
     console.log('File format:', format, 'Extension:', extension);
-    
+
     if (!format?.includes('video/mp4') || !VIDEO_CONSTRAINTS.formats.includes(extension)) {
       throw new Error('Please select an MP4 video file');
     }
@@ -129,7 +129,7 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       // Validate file integrity
       const stats = await RNFS.stat(tempPath);
       console.log('File stats:', stats);
-      
+
       if (!stats.size || stats.size !== file.size) {
         throw new Error('Video file appears to be corrupted');
       }
@@ -153,7 +153,7 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
       'Video Import Error',
       message,
       [
-        { 
+        {
           text: 'Settings',
           onPress: () => {
             if (message.includes('permission')) {
@@ -161,9 +161,9 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
               // Implement based on platform
             }
           },
-          style: 'default'
+          style: 'default',
         },
-        { text: 'OK', style: 'cancel' }
+        { text: 'OK', style: 'cancel' },
       ],
       { cancelable: true }
     );
@@ -193,10 +193,10 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
         mode: 'open',
         allowMultiSelection: false,
       });
-      
+
       const file = result[0];
       console.log('Selected file:', file);
-      
+
       // Validate video format and size
       await validateVideoFormat(file);
 
@@ -210,10 +210,10 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
           setProgress(progressPercent);
         }
       );
-      
+
       console.log('Import completed successfully:', video);
       onImportComplete?.(video);
-      
+
       // Clear state
       setProgress(0);
     } catch (error) {
@@ -254,7 +254,7 @@ const VideoImport = ({ onImportStart, onImportComplete, onError }) => {
         )}
       </TouchableOpacity>
       <Text style={styles.helpText}>
-        {hasPermission 
+        {hasPermission
           ? 'Select a vertical nature video (60 sec max)'
           : 'Storage access required for nature videos'}
       </Text>
@@ -320,4 +320,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VideoImport; 
+export default VideoImport;

@@ -8,7 +8,7 @@ global.fetch = jest.fn();
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(),
-  setItem: jest.fn()
+  setItem: jest.fn(),
 }));
 
 // Timing constants from requirements
@@ -17,7 +17,7 @@ const TIMING = {
   PREVIEW: 3000,   // 3 seconds for preview
   RECOVERY: 1000,  // 1 second for recovery
   TRANSITION: 250, // 250ms for transitions
-  VALIDATION: 500  // 500ms for format validation
+  VALIDATION: 500,  // 500ms for format validation
 };
 
 describe('OpenShot Integration', () => {
@@ -31,7 +31,7 @@ describe('OpenShot Integration', () => {
   describe('Import Story (3s)', () => {
     const mockProject = {
       id: 'project-123',
-      name: 'Nature_creator-123'
+      name: 'Nature_creator-123',
     };
 
     it('should complete import flow within 3s', async () => {
@@ -41,18 +41,18 @@ describe('OpenShot Integration', () => {
       AsyncStorage.getItem.mockResolvedValueOnce('{}');
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockProject)
+        json: () => Promise.resolve(mockProject),
       });
 
       const result = await OpenShotService.createProject('creator-123');
-      
+
       expect(result).toEqual(mockProject);
       expect(Date.now() - start).toBeLessThan(TIMING.IMPORT);
     });
 
     it('should handle import errors within 1s', async () => {
       const start = Date.now();
-      
+
       AsyncStorage.getItem.mockResolvedValueOnce('{}');
       fetch.mockResolvedValueOnce({ ok: false });
 
@@ -69,7 +69,7 @@ describe('OpenShot Integration', () => {
   describe('Preview Story (3s)', () => {
     const mockVideo = {
       id: 'video-123',
-      url: 'http://example.com/video-123'
+      url: 'http://example.com/video-123',
     };
 
     it('should complete preview flow within 3s', async () => {
@@ -79,15 +79,15 @@ describe('OpenShot Integration', () => {
       fetch
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve(mockVideo)
+          json: () => Promise.resolve(mockVideo),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({ status: 'processing' })
+          json: () => Promise.resolve({ status: 'processing' }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({ status: 'completed', url: mockVideo.url })
+          json: () => Promise.resolve({ status: 'completed', url: mockVideo.url }),
         });
 
       // Upload and process
@@ -107,7 +107,7 @@ describe('OpenShot Integration', () => {
 
     it('should validate format within 500ms', async () => {
       const start = Date.now();
-      
+
       fetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
@@ -115,13 +115,13 @@ describe('OpenShot Integration', () => {
           metadata: {
             width: 720,
             height: 1280,
-            orientation: 'portrait'
-          }
-        })
+            orientation: 'portrait',
+          },
+        }),
       });
 
       const result = await OpenShotService.processVideo('project-123', 'video-123');
-      
+
       expect(result.status).toBe('completed');
       expect(Date.now() - start).toBeLessThan(TIMING.VALIDATION);
     });
@@ -134,7 +134,7 @@ describe('OpenShot Integration', () => {
       fetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
-        json: () => Promise.resolve({ error: 'Invalid format' })
+        json: () => Promise.resolve({ error: 'Invalid format' }),
       });
 
       try {
@@ -154,7 +154,7 @@ describe('OpenShot Integration', () => {
         .mockResolvedValueOnce({ ok: false })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({ status: 'completed' })
+          json: () => Promise.resolve({ status: 'completed' }),
         });
 
       try {
@@ -168,14 +168,14 @@ describe('OpenShot Integration', () => {
 
     it('should transition states within 250ms', async () => {
       const start = Date.now();
-      
+
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ status: 'processing' })
+        json: () => Promise.resolve({ status: 'processing' }),
       });
 
       const result = await OpenShotService.getStatus('video-123');
-      
+
       expect(result.status).toBe('processing');
       expect(Date.now() - start).toBeLessThan(TIMING.TRANSITION);
     });
@@ -190,9 +190,9 @@ describe('OpenShot Integration', () => {
           metadata: {
             width: 720,
             height: 1280,
-            orientation: 'portrait'
-          }
-        })
+            orientation: 'portrait',
+          },
+        }),
       });
 
       const result = await OpenShotService.processVideo('project-123', 'video-123');
@@ -211,4 +211,4 @@ describe('OpenShot Integration', () => {
       }
     });
   });
-}); 
+});

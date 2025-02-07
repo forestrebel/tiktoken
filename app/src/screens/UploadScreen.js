@@ -131,7 +131,7 @@ const UploadScreen = () => {
             onRetry={handleRetry}
           />
         );
-      
+
       case UPLOAD_STATES.PREVIEW:
         return (
           <VideoPreview
@@ -140,7 +140,7 @@ const UploadScreen = () => {
             onCancel={handleRetry}
           />
         );
-      
+
       case UPLOAD_STATES.UPLOADING:
         return (
           <UploadProgress
@@ -152,7 +152,7 @@ const UploadScreen = () => {
             onComplete={handleRetry}
           />
         );
-      
+
       case UPLOAD_STATES.SHARE:
         return (
           <ShareSuccess
@@ -160,7 +160,7 @@ const UploadScreen = () => {
             onDone={handleRetry}
           />
         );
-      
+
       case UPLOAD_STATES.SELECT:
       default:
         return (
@@ -182,7 +182,7 @@ const UploadScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
       <View style={styles.header}>
         <Text style={styles.title}>Upload Nature Video</Text>
         {error && currentState !== UPLOAD_STATES.UPLOADING && (
@@ -258,4 +258,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default UploadScreen; 
+export default UploadScreen;

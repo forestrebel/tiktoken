@@ -53,16 +53,16 @@ const VideoValidator = ({ videoUri, onValidationComplete }) => {
       }
 
       // Success
-      onValidationComplete?.({ 
+      onValidationComplete?.({
         status: 'success',
-        metadata: meta 
+        metadata: meta,
       });
     } catch (error) {
       console.error('Validation error:', error);
       setError(error.message || 'Unable to validate video');
-      onValidationComplete?.({ 
+      onValidationComplete?.({
         status: 'error',
-        error: error.message 
+        error: error.message,
       });
     } finally {
       setValidating(false);
@@ -130,4 +130,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VideoValidator; 
+export default VideoValidator;

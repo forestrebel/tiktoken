@@ -20,7 +20,7 @@ const backoff = (retryCount) => {
 export const OpenShotService = {
   /**
    * Initialize project for a creator
-   * @param {string} creatorId 
+   * @param {string} creatorId
    * @returns {Promise<{id: string, name: string}>}
    */
   async createProject(creatorId) {
@@ -42,38 +42,38 @@ export const OpenShotService = {
           width: 720,
           height: 1280,
           fps: 30,
-          profile: 'mobile'
-        })
+          profile: 'mobile',
+        }),
       });
 
       if (!response.ok) {
         throw new OpenShotError('Failed to create project', [
           'Check your internet connection',
-          'Try again in a few minutes'
+          'Try again in a few minutes',
         ]);
       }
 
       const project = await response.json();
-      
+
       // Cache project
       projects[creatorId] = project;
       await AsyncStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
 
       return project;
     } catch (error) {
-      if (error instanceof OpenShotError) throw error;
+      if (error instanceof OpenShotError) {throw error;}
       throw new OpenShotError('Project creation failed', [
         'Ensure you have an active internet connection',
-        'Try restarting the app'
+        'Try restarting the app',
       ]);
     }
   },
 
   /**
    * Upload video to OpenShot project
-   * @param {string} projectId 
-   * @param {string} videoPath 
-   * @param {Function} onProgress 
+   * @param {string} projectId
+   * @param {string} videoPath
+   * @param {Function} onProgress
    * @returns {Promise<{id: string, url: string}>}
    */
   async uploadVideo(projectId, videoPath, onProgress) {
@@ -82,7 +82,7 @@ export const OpenShotService = {
       formData.append('file', {
         uri: videoPath,
         type: 'video/mp4',
-        name: 'video.mp4'
+        name: 'video.mp4',
       });
       formData.append('project_id', projectId);
 
@@ -91,31 +91,31 @@ export const OpenShotService = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        body: formData
+        body: formData,
       });
 
       if (!response.ok) {
         throw new OpenShotError('Failed to upload video', [
           'Check your internet connection',
           'Ensure the video file is valid',
-          'Try uploading a smaller video'
+          'Try uploading a smaller video',
         ]);
       }
 
       return response.json();
     } catch (error) {
-      if (error instanceof OpenShotError) throw error;
+      if (error instanceof OpenShotError) {throw error;}
       throw new OpenShotError('Video upload failed', [
         'Check your internet connection',
-        'Try uploading again'
+        'Try uploading again',
       ]);
     }
   },
 
   /**
    * Process video for portrait mode
-   * @param {string} projectId 
-   * @param {string} videoId 
+   * @param {string} projectId
+   * @param {string} videoId
    * @returns {Promise<{id: string, status: string}>}
    */
   async processVideo(projectId, videoId) {
@@ -133,40 +133,40 @@ export const OpenShotService = {
               params: {
                 width: 720,
                 height: 1280,
-                tolerance: 0.01
-              }
-            }
-          ]
-        })
+                tolerance: 0.01,
+              },
+            },
+          ],
+        }),
       });
 
       if (!response.ok) {
         throw new OpenShotError('Failed to process video', [
           'Ensure video is in portrait mode',
-          'Try uploading a different video'
+          'Try uploading a different video',
         ]);
       }
 
       return response.json();
     } catch (error) {
-      if (error instanceof OpenShotError) throw error;
+      if (error instanceof OpenShotError) {throw error;}
       throw new OpenShotError('Video processing failed', [
         'Check if the video meets requirements',
-        'Try processing again'
+        'Try processing again',
       ]);
     }
   },
 
   /**
    * Get video processing status
-   * @param {string} videoId 
-   * @param {number} retryCount 
+   * @param {string} videoId
+   * @param {number} retryCount
    * @returns {Promise<{status: string, progress: number}>}
    */
   async getStatus(videoId, retryCount = 0) {
     try {
       const response = await fetch(`${OPENSHOT_API}/videos/${videoId}/status`);
-      
+
       if (!response.ok) {
         if (retryCount < 3) {
           await new Promise(resolve => setTimeout(resolve, backoff(retryCount)));
@@ -174,30 +174,30 @@ export const OpenShotService = {
         }
         throw new OpenShotError('Failed to get status', [
           'Try checking status again',
-          'Restart the process if issue persists'
+          'Restart the process if issue persists',
         ]);
       }
 
       return response.json();
     } catch (error) {
-      if (error instanceof OpenShotError) throw error;
+      if (error instanceof OpenShotError) {throw error;}
       throw new OpenShotError('Status check failed', [
         'Check your internet connection',
-        'Try again in a few moments'
+        'Try again in a few moments',
       ]);
     }
   },
 
   /**
    * Clean up project resources
-   * @param {string} projectId 
+   * @param {string} projectId
    */
   async cleanup(projectId) {
     try {
       await fetch(`${OPENSHOT_API}/projects/${projectId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
-      
+
       // Clean up local cache
       const projects = JSON.parse(await AsyncStorage.getItem(PROJECTS_KEY) || '{}');
       const creatorId = Object.keys(projects).find(key => projects[key].id === projectId);
@@ -208,5 +208,5 @@ export const OpenShotService = {
     } catch (error) {
       console.warn('Cleanup failed:', error);
     }
-  }
-}; 
+  },
+};

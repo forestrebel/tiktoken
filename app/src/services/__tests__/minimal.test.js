@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 const TIMING = {
   IMPORT: 3000,    // 3s for import flow
   PREVIEW: 3000,   // 3s for preview/player
-  RECOVERY: 1000   // 1s for error handling
+  RECOVERY: 1000,   // 1s for error handling
 };
 
 describe('Core Demo Flow', () => {
@@ -21,7 +21,7 @@ describe('Core Demo Flow', () => {
       const start = Date.now();
       const file = createVideoFile.portrait();
       const result = await videoService.importVideo(file.uri);
-      
+
       expect(result).toBeTruthy();
       expect(Date.now() - start).toBeLessThan(TIMING.IMPORT);
     });
@@ -40,7 +40,7 @@ describe('Core Demo Flow', () => {
     it('validates 100MB size limit', async () => {
       const start = Date.now();
       const largeFile = createVideoFile.oversized();
-      
+
       try {
         await videoService.validateVideo(largeFile.uri);
       } catch (error) {
@@ -65,7 +65,7 @@ describe('Core Demo Flow', () => {
     it('displays video in portrait mode within 3s', async () => {
       const start = Date.now();
       const video = await videoService.getVideo('test-video');
-      
+
       expect(video.width).toBe(720);
       expect(video.height).toBe(1280);
       expect(Date.now() - start).toBeLessThan(TIMING.PREVIEW);
@@ -75,7 +75,7 @@ describe('Core Demo Flow', () => {
       const start = Date.now();
       const video = await videoService.getVideo('test-video');
       const player = await videoService.createPlayer(video.uri);
-      
+
       expect(player.ready).toBe(true);
       expect(Date.now() - start).toBeLessThan(TIMING.PREVIEW);
     });
@@ -84,7 +84,7 @@ describe('Core Demo Flow', () => {
       const start = Date.now();
       const video = await videoService.getVideo('test-video');
       const thumbnail = await videoService.getThumbnail(video.id);
-      
+
       expect(thumbnail).toBeTruthy();
       expect(Date.now() - start).toBeLessThan(TIMING.RECOVERY);
     });
@@ -92,7 +92,7 @@ describe('Core Demo Flow', () => {
     it('navigates between grid and player within 250ms', async () => {
       const start = Date.now();
       await navigation.navigate('Player', { videoId: 'test-video' });
-      
+
       expect(Date.now() - start).toBeLessThan(250); // Animation time
       expect(navigation.navigate).toHaveBeenCalledWith('Player', { videoId: 'test-video' });
     });
@@ -146,46 +146,46 @@ describe('Core Demo Flow', () => {
   describe('4. Critical Integration', () => {
     it('completes grid to player navigation flow', async () => {
       const start = Date.now();
-      
+
       // Select from grid
       const videos = await videoService.getVideos();
       expect(videos.length).toBeGreaterThan(0);
-      
+
       // Navigate to player
       const video = videos[0];
       await navigation.navigate('Player', { videoId: video.id });
-      
+
       // Verify player loaded
       const player = await videoService.getPlayer();
       expect(player.videoId).toBe(video.id);
       expect(navigation.navigate).toHaveBeenCalledWith('Player', { videoId: video.id });
-      
+
       expect(Date.now() - start).toBeLessThan(TIMING.PREVIEW);
     });
 
     it('completes import to preview flow', async () => {
       const start = Date.now();
-      
+
       // Import video
       const file = createVideoFile.portrait();
       const imported = await videoService.importVideo(file.uri);
-      
+
       // Preview imported video
       const preview = await videoService.getVideo(imported.id);
       expect(preview).toBeTruthy();
-      
+
       expect(Date.now() - start).toBeLessThan(TIMING.IMPORT + TIMING.PREVIEW);
     });
 
     it('preserves basic video state', async () => {
       const video = await videoService.getVideo('test-video');
       const savedState = await videoService.getVideoState(video.id);
-      
+
       expect(savedState).toEqual({
         id: video.id,
         uri: video.uri,
-        thumbnail: expect.any(String)
+        thumbnail: expect.any(String),
       });
     });
   });
-}); 
+});

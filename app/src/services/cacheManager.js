@@ -5,14 +5,14 @@ import RNFS from 'react-native-fs';
 const CACHE_KEYS = {
   SETTINGS: '@demo_settings',
   CACHE_METADATA: '@cache_metadata',
-  LAST_DEMO_STATE: '@last_demo_state'
+  LAST_DEMO_STATE: '@last_demo_state',
 };
 
 const CACHE_LIMITS = {
   MAX_TOTAL_SIZE: 100 * 1024 * 1024, // 100MB
   MAX_FILE_AGE: 24 * 60 * 60 * 1000, // 24 hours
   CLEANUP_INTERVAL: 30 * 60 * 1000, // 30 minutes
-  LOW_MEMORY_THRESHOLD: 0.9 // 90% of max size
+  LOW_MEMORY_THRESHOLD: 0.9, // 90% of max size
 };
 
 class CacheManager {
@@ -78,7 +78,7 @@ class CacheManager {
         lastAccessed: Date.now(),
         accessCount: 0,
         type,
-        ...metadata
+        ...metadata,
       };
 
       // Check if adding this file would exceed limits
@@ -149,7 +149,7 @@ class CacheManager {
       if (await this.getTotalCacheSize() > CACHE_LIMITS.MAX_TOTAL_SIZE) {
         const sortedFiles = Array.from(this.metadata.entries())
           .sort((a, b) => a[1].accessCount - b[1].accessCount);
-        
+
         for (const [path] of sortedFiles) {
           if (await this.getTotalCacheSize() <= CACHE_LIMITS.MAX_TOTAL_SIZE) {
             break;
@@ -308,4 +308,4 @@ class CacheManager {
   }
 }
 
-export const cacheManager = new CacheManager(); 
+export const cacheManager = new CacheManager();

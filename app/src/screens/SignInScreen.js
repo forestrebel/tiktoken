@@ -27,7 +27,7 @@ export default function SignInScreen({ navigation }) {
     <View style={styles.container}>
       <Text style={styles.title}>TikToken Demo</Text>
       <Text style={styles.subtitle}>Nature Video Creator</Text>
-      
+
       <TouchableOpacity
         style={styles.button}
         onPress={handleDemoSignIn}
@@ -71,4 +71,4 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-}); 
+});

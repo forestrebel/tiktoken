@@ -25,9 +25,9 @@ const DEMO_DESCRIPTIONS = {
       'Pass validation checks',
       'Preview in portrait mode',
       'Upload successfully',
-      'Share video link'
+      'Share video link',
     ],
-    time: '~10 seconds'
+    time: '~10 seconds',
   },
   landscape: {
     title: 'Aspect Ratio Validation',
@@ -35,9 +35,9 @@ const DEMO_DESCRIPTIONS = {
       'Select landscape video',
       'Show validation error',
       'Display retry option',
-      'Guide to portrait mode'
+      'Guide to portrait mode',
     ],
-    time: '~5 seconds'
+    time: '~5 seconds',
   },
   oversized: {
     title: 'Size Limit Check',
@@ -45,9 +45,9 @@ const DEMO_DESCRIPTIONS = {
       'Select large video (>100MB)',
       'Show size error',
       'Display size limits',
-      'Offer retry option'
+      'Offer retry option',
     ],
-    time: '~5 seconds'
+    time: '~5 seconds',
   },
   network_error: {
     title: 'Network Error Recovery',
@@ -55,10 +55,10 @@ const DEMO_DESCRIPTIONS = {
       'Start upload normally',
       'Simulate network error',
       'Show retry option',
-      'Demonstrate recovery'
+      'Demonstrate recovery',
     ],
-    time: '~15 seconds'
-  }
+    time: '~15 seconds',
+  },
 };
 
 const DemoScreen = () => {
@@ -125,7 +125,7 @@ const DemoScreen = () => {
       await cacheManager.saveDemoState({
         selectedDemo,
         expandedInfo,
-        lastAccessed: Date.now()
+        lastAccessed: Date.now(),
       });
     } catch (error) {
       console.warn('Failed to save state:', error);
@@ -160,9 +160,9 @@ const DemoScreen = () => {
           text: 'Prepare Now',
           onPress: handlePrepareDemo,
           style: 'default',
-          enabled: !status.ready
+          enabled: !status.ready,
         },
-        { text: 'OK', style: 'cancel' }
+        { text: 'OK', style: 'cancel' },
       ]
     );
   };
@@ -171,19 +171,19 @@ const DemoScreen = () => {
     try {
       setIsGenerating(true);
       setSelectedDemo(type);
-      
+
       // Generate demo video
       const video = await demoVideoService.generateVideo(type);
-      
+
       // Add to cache manager
       await cacheManager.addFile(type, video.uri, {
         width: video.width,
         height: video.height,
-        duration: video.duration
+        duration: video.duration,
       });
-      
+
       setDemoVideo(video);
-      
+
       // Save state after successful selection
       await saveCurrentState();
     } catch (error) {
@@ -200,13 +200,13 @@ const DemoScreen = () => {
     try {
       setSelectedDemo(null);
       setDemoVideo(null);
-      
+
       // Clean up demo service
       await demoVideoService.cleanup();
-      
+
       // Trigger cache cleanup
       await cacheManager.performCleanup();
-      
+
       // Save clean state
       await saveCurrentState();
     } catch (error) {
@@ -220,12 +220,12 @@ const DemoScreen = () => {
 
   // Render prep status
   const renderPrepStatus = () => {
-    if (!isPrepping && prepStatus.progress === 0) return null;
+    if (!isPrepping && prepStatus.progress === 0) {return null;}
 
     return (
       <View style={styles.prepStatus}>
-        <ActivityIndicator 
-          size="small" 
+        <ActivityIndicator
+          size="small"
           color="#2196f3"
           style={styles.prepSpinner}
         />
@@ -250,7 +250,7 @@ const DemoScreen = () => {
           >
             <Text style={styles.resetButtonText}>← Back to Demo Selection</Text>
           </TouchableOpacity>
-          
+
           {selectedDemo && DEMO_DESCRIPTIONS[selectedDemo] && (
             <View style={styles.demoInfo}>
               <Text style={styles.demoInfoTitle}>
@@ -262,7 +262,7 @@ const DemoScreen = () => {
             </View>
           )}
         </View>
-        
+
         <UploadScreen
           initialVideo={demoVideo}
           onComplete={handleReset}
@@ -277,7 +277,7 @@ const DemoScreen = () => {
       <View style={styles.header}>
         <Text style={styles.title}>Nature Video Upload Demo</Text>
         <Text style={styles.subtitle}>Select a demo scenario:</Text>
-        
+
         <View style={styles.controls}>
           <View style={styles.quickModeContainer}>
             <Text style={styles.quickModeLabel}>Quick Demo Mode</Text>
@@ -321,7 +321,7 @@ const DemoScreen = () => {
               style={[
                 styles.demoButton,
                 selectedDemo === demo.type && styles.selectedDemo,
-                isGenerating && styles.disabledDemo
+                isGenerating && styles.disabledDemo,
               ]}
               onPress={() => handleDemoSelect(demo.type)}
               disabled={isGenerating}
@@ -333,7 +333,7 @@ const DemoScreen = () => {
               <Text style={styles.demoSpecs}>
                 {`${demo.width}x${demo.height} @ ${demo.fps}fps (${demo.duration}s)`}
               </Text>
-              
+
               <TouchableOpacity
                 style={styles.infoButton}
                 onPress={() => toggleInfo(demo.type)}
@@ -603,4 +603,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DemoScreen; 
+export default DemoScreen;

@@ -22,34 +22,34 @@ const VALIDATION_FLOWS = [
     title: 'Import Story',
     description: 'Nature video selection',
     tests: [
-      { 
-        id: 'mp4', 
-        name: 'MP4 Import', 
+      {
+        id: 'mp4',
+        name: 'MP4 Import',
         limit: TIMING_LIMITS.IMPORT_FLOW,
         modes: {
           local: 'Quick file selection',
-          deployed: 'Stable file access'
-        }
+          deployed: 'Stable file access',
+        },
       },
-      { 
-        id: 'non_mp4', 
-        name: 'Non-MP4 Error', 
+      {
+        id: 'non_mp4',
+        name: 'Non-MP4 Error',
         limit: TIMING_LIMITS.ERROR_RECOVERY,
         modes: {
           local: 'Instant error',
-          deployed: 'Stable error'
-        }
+          deployed: 'Stable error',
+        },
       },
-      { 
-        id: 'progress', 
-        name: 'Upload Progress', 
+      {
+        id: 'progress',
+        name: 'Upload Progress',
         limit: TIMING_LIMITS.TRANSITION,
         modes: {
           local: 'Quick updates',
-          deployed: 'Reliable progress'
-        }
-      }
-    ]
+          deployed: 'Reliable progress',
+        },
+      },
+    ],
   },
   {
     id: 'portrait',
@@ -58,8 +58,8 @@ const VALIDATION_FLOWS = [
     tests: [
       { id: 'ratio', name: '9:16 Check', limit: TIMING_LIMITS.VALIDATION },
       { id: 'landscape', name: 'Landscape Error', limit: TIMING_LIMITS.ERROR_RECOVERY },
-      { id: 'feedback', name: 'Format Guidance', limit: TIMING_LIMITS.TRANSITION }
-    ]
+      { id: 'feedback', name: 'Format Guidance', limit: TIMING_LIMITS.TRANSITION },
+    ],
   },
   {
     id: 'preview',
@@ -68,8 +68,8 @@ const VALIDATION_FLOWS = [
     tests: [
       { id: 'load', name: 'Preview Load', limit: TIMING_LIMITS.PREVIEW_START },
       { id: 'controls', name: 'Playback Controls', limit: TIMING_LIMITS.TRANSITION },
-      { id: 'fullscreen', name: 'Portrait View', limit: TIMING_LIMITS.TRANSITION }
-    ]
+      { id: 'fullscreen', name: 'Portrait View', limit: TIMING_LIMITS.TRANSITION },
+    ],
   },
   {
     id: 'collection',
@@ -78,8 +78,8 @@ const VALIDATION_FLOWS = [
     tests: [
       { id: 'grid', name: 'Grid Layout', limit: TIMING_LIMITS.GRID_LOAD },
       { id: 'empty', name: 'Empty State', limit: TIMING_LIMITS.TRANSITION },
-      { id: 'thumbnails', name: 'Nature Previews', limit: TIMING_LIMITS.TRANSITION }
-    ]
+      { id: 'thumbnails', name: 'Nature Previews', limit: TIMING_LIMITS.TRANSITION },
+    ],
   },
   {
     id: 'navigation',
@@ -88,8 +88,8 @@ const VALIDATION_FLOWS = [
     tests: [
       { id: 'modal', name: 'Upload Modal', limit: TIMING_LIMITS.TRANSITION },
       { id: 'preview', name: 'Preview Screen', limit: TIMING_LIMITS.TRANSITION },
-      { id: 'back', name: 'Return Flow', limit: TIMING_LIMITS.TRANSITION }
-    ]
+      { id: 'back', name: 'Return Flow', limit: TIMING_LIMITS.TRANSITION },
+    ],
   },
   {
     id: 'recovery',
@@ -98,9 +98,9 @@ const VALIDATION_FLOWS = [
     tests: [
       { id: 'format', name: 'Format Error', limit: TIMING_LIMITS.ERROR_RECOVERY },
       { id: 'size', name: 'Size Error', limit: TIMING_LIMITS.ERROR_RECOVERY },
-      { id: 'retry', name: 'Quick Retry', limit: TIMING_LIMITS.ERROR_RECOVERY }
-    ]
-  }
+      { id: 'retry', name: 'Quick Retry', limit: TIMING_LIMITS.ERROR_RECOVERY },
+    ],
+  },
 ];
 
 // Visual consistency checks
@@ -111,8 +111,8 @@ const VISUAL_CHECKS = [
     tests: [
       { id: 'colors', name: 'Forest Palette', type: 'visual' },
       { id: 'shapes', name: 'Organic Shapes', type: 'visual' },
-      { id: 'motion', name: 'Natural Motion', type: 'visual' }
-    ]
+      { id: 'motion', name: 'Natural Motion', type: 'visual' },
+    ],
   },
   {
     id: 'feedback',
@@ -120,9 +120,9 @@ const VISUAL_CHECKS = [
     tests: [
       { id: 'states', name: 'Clear States', type: 'visual' },
       { id: 'guidance', name: 'Nature Guidance', type: 'visual' },
-      { id: 'errors', name: 'Helpful Errors', type: 'visual' }
-    ]
-  }
+      { id: 'errors', name: 'Helpful Errors', type: 'visual' },
+    ],
+  },
 ];
 
 // Recording path validation
@@ -133,8 +133,8 @@ const RECORDING_PATHS = [
     tests: [
       { id: 'setup', name: 'Clean Environment', type: 'prep' },
       { id: 'stories', name: 'All Stories Ready', type: 'prep' },
-      { id: 'timing', name: 'Under Limits', type: 'prep' }
-    ]
+      { id: 'timing', name: 'Under Limits', type: 'prep' },
+    ],
   },
   {
     id: 'paths',
@@ -142,9 +142,9 @@ const RECORDING_PATHS = [
     tests: [
       { id: 'success', name: 'Perfect Upload', type: 'flow' },
       { id: 'error', name: 'Error Recovery', type: 'flow' },
-      { id: 'collection', name: 'Grid Usage', type: 'flow' }
-    ]
-  }
+      { id: 'collection', name: 'Grid Usage', type: 'flow' },
+    ],
+  },
 ];
 
 const ValidationStep = ({ flow, results, isActive, mode }) => (
@@ -155,7 +155,7 @@ const ValidationStep = ({ flow, results, isActive, mode }) => (
         {flow.description} ({mode} mode)
       </Text>
     </View>
-    
+
     {flow.tests.map(test => (
       <View key={test.id} style={styles.testContainer}>
         <View style={styles.testHeader}>
@@ -168,22 +168,22 @@ const ValidationStep = ({ flow, results, isActive, mode }) => (
           {results[test.id]?.time && (
             <Text style={[
               styles.testTime,
-              results[test.id]?.time > test.limit ? styles.timeWarning : styles.timeSuccess
+              results[test.id]?.time > test.limit ? styles.timeWarning : styles.timeSuccess,
             ]}>
               {results[test.id]?.time}ms
             </Text>
           )}
         </View>
-        
+
         <View style={styles.testStatus}>
-          <Icon 
-            name={results[test.id]?.status === 'pass' ? 'checkmark-circle' : 'alert-circle'} 
-            size={16} 
-            color={results[test.id]?.status === 'pass' ? '#2E7D32' : '#F44336'} 
+          <Icon
+            name={results[test.id]?.status === 'pass' ? 'checkmark-circle' : 'alert-circle'}
+            size={16}
+            color={results[test.id]?.status === 'pass' ? '#2E7D32' : '#F44336'}
           />
           <Text style={[
             styles.testResult,
-            results[test.id]?.status === 'pass' ? styles.resultPass : styles.resultFail
+            results[test.id]?.status === 'pass' ? styles.resultPass : styles.resultFail,
           ]}>
             {results[test.id]?.message || 'Pending'}
           </Text>
@@ -225,7 +225,7 @@ const DemoValidation = () => {
               break;
           }
           break;
-          
+
         case 'portrait':
           switch (test.id) {
             case 'ratio':
@@ -245,21 +245,21 @@ const DemoValidation = () => {
               break;
           }
           break;
-          
+
         // ... similar cases for other flows
       }
-      
+
       const time = Date.now() - startTime;
       return {
         status: time <= test.limit ? 'pass' : 'fail',
         time,
-        message: time <= test.limit ? 'Success' : 'Too slow'
+        message: time <= test.limit ? 'Success' : 'Too slow',
       };
     } catch (error) {
       return {
         status: 'fail',
         time: Date.now() - startTime,
-        message: error.message
+        message: error.message,
       };
     }
   };
@@ -306,7 +306,7 @@ const DemoValidation = () => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>6 PM Demo Validation</Text>
-      
+
       <View style={styles.controls}>
         <View style={styles.modeSwitch}>
           <Text style={styles.modeLabel}>Mode:</Text>
@@ -324,10 +324,10 @@ const DemoValidation = () => {
             style={styles.checkbox}
             onPress={() => setShowVisuals(!showVisuals)}
           >
-            <Icon 
-              name={showVisuals ? 'checkbox' : 'square-outline'} 
-              size={20} 
-              color="#2E7D32" 
+            <Icon
+              name={showVisuals ? 'checkbox' : 'square-outline'}
+              size={20}
+              color="#2E7D32"
             />
             <Text style={styles.checkboxLabel}>Visual Checks</Text>
           </TouchableOpacity>
@@ -336,10 +336,10 @@ const DemoValidation = () => {
             style={styles.checkbox}
             onPress={() => setShowRecording(!showRecording)}
           >
-            <Icon 
-              name={showRecording ? 'checkbox' : 'square-outline'} 
-              size={20} 
-              color="#2E7D32" 
+            <Icon
+              name={showRecording ? 'checkbox' : 'square-outline'}
+              size={20}
+              color="#2E7D32"
             />
             <Text style={styles.checkboxLabel}>Recording Paths</Text>
           </TouchableOpacity>
@@ -385,8 +385,8 @@ const DemoValidation = () => {
         disabled={isValidating}
       >
         <Text style={styles.buttonText}>
-          {isValidating 
-            ? `Testing: ${currentFlow || 'Preparing'}...` 
+          {isValidating
+            ? `Testing: ${currentFlow || 'Preparing'}...`
             : `Validate All (${mode} mode)`}
         </Text>
       </TouchableOpacity>
@@ -395,9 +395,9 @@ const DemoValidation = () => {
         <View style={styles.summary}>
           <Text style={[
             styles.summaryText,
-            isReadyForDemo() ? styles.summaryPass : styles.summaryFail
+            isReadyForDemo() ? styles.summaryPass : styles.summaryFail,
           ]}>
-            {isReadyForDemo() 
+            {isReadyForDemo()
               ? `✓ Ready for 6 PM Demo (${mode})`
               : `⚠ Stories Need Review (${mode})`}
           </Text>
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
     fontStyle: 'italic',
     marginTop: 2,
-  }
+  },
 });
 
-export default DemoValidation; 
+export default DemoValidation;

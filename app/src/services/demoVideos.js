@@ -13,8 +13,8 @@ const DEMO_CONFIGS = {
     description: 'Perfect portrait nature video (9:16)',
     quickMode: {
       duration: 5, // Even shorter for quick demo
-      skipGeneration: true // Use cached version when possible
-    }
+      skipGeneration: true, // Use cached version when possible
+    },
   },
   // Landscape video (16:9) - for error testing
   landscape: {
@@ -25,8 +25,8 @@ const DEMO_CONFIGS = {
     bitrate: '2M',
     description: 'Landscape video (should fail)',
     quickMode: {
-      skipValidation: false // Always validate to show error
-    }
+      skipValidation: false, // Always validate to show error
+    },
   },
   // Oversized video - for error testing
   oversized: {
@@ -37,8 +37,8 @@ const DEMO_CONFIGS = {
     bitrate: '8M',
     description: 'Oversized video (should fail)',
     quickMode: {
-      simulateSize: 150 * 1024 * 1024 // Simulate 150MB without generating
-    }
+      simulateSize: 150 * 1024 * 1024, // Simulate 150MB without generating
+    },
   },
   // Network error simulation
   network_error: {
@@ -50,9 +50,9 @@ const DEMO_CONFIGS = {
     description: 'Simulates network error during upload',
     quickMode: {
       simulateError: 'network',
-      errorAfterProgress: 0.7 // Fail at 70% upload
-    }
-  }
+      errorAfterProgress: 0.7, // Fail at 70% upload
+    },
+  },
 };
 
 class DemoVideoService {
@@ -104,7 +104,7 @@ class DemoVideoService {
             fps: config.fps,
             description: config.description,
             simulatedError: config.quickMode.simulateError,
-            errorProgress: config.quickMode.errorAfterProgress
+            errorProgress: config.quickMode.errorAfterProgress,
           };
         }
 
@@ -125,10 +125,10 @@ class DemoVideoService {
       // FFmpeg command to generate test video
       const cmd = [
         // Input: Generate test pattern
-        '-f', 'lavfi', 
+        '-f', 'lavfi',
         '-i', `testsrc=duration=${duration}:size=${config.width}x${config.height}:rate=${config.fps}`,
         // Add nature-like overlay text
-        '-vf', `drawtext=text='Nature Demo':fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2`,
+        '-vf', 'drawtext=text=\'Nature Demo\':fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2',
         // Video codec settings
         '-c:v', 'libx264', '-preset', 'ultrafast', // Faster encoding for demo
         // Enforce configuration
@@ -139,7 +139,7 @@ class DemoVideoService {
         // Force overwrite
         '-y',
         // Output path
-        outputPath
+        outputPath,
       ].join(' ');
 
       // Generate video
@@ -149,19 +149,19 @@ class DemoVideoService {
       if (returnCode === 0) {
         // Get file stats
         const stats = await RNFS.stat(outputPath);
-        
+
         const result = {
           uri: `file://${outputPath}`,
           fileName,
           type: 'video/mp4',
-          size: this.quickMode && config.quickMode?.simulateSize 
-            ? config.quickMode.simulateSize 
+          size: this.quickMode && config.quickMode?.simulateSize
+            ? config.quickMode.simulateSize
             : stats.size,
           width: config.width,
           height: config.height,
           duration,
           fps: config.fps,
-          description: config.description
+          description: config.description,
         };
 
         // Cache for quick mode
@@ -217,7 +217,7 @@ class DemoVideoService {
       type,
       ...config,
       // Don't expose internal quick mode config
-      quickMode: undefined
+      quickMode: undefined,
     }));
   }
 
@@ -236,4 +236,4 @@ class DemoVideoService {
   }
 }
 
-export const demoVideoService = new DemoVideoService(); 
+export const demoVideoService = new DemoVideoService();

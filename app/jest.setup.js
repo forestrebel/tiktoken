@@ -7,7 +7,7 @@ jest.mock('react-native-fs', () => ({
   exists: jest.fn().mockResolvedValue(true),
   mkdir: jest.fn().mockResolvedValue(true),
   copyFile: jest.fn().mockResolvedValue(true),
-  unlink: jest.fn().mockResolvedValue(true)
+  unlink: jest.fn().mockResolvedValue(true),
 }));
 
 // Mock react-native-document-picker
@@ -15,14 +15,14 @@ jest.mock('react-native-document-picker', () => ({
   pick: jest.fn().mockResolvedValue({
     uri: 'file://test.mp4',
     type: 'video/mp4',
-    size: 1024 * 1024 // 1MB
+    size: 1024 * 1024, // 1MB
   }),
-  types: { video: 'video/*' }
+  types: { video: 'video/*' },
 }));
 
 // Mock dimensions
 jest.mock('react-native/Libraries/Utilities/Dimensions', () => ({
-  get: jest.fn().mockReturnValue({ width: 360, height: 640 })
+  get: jest.fn().mockReturnValue({ width: 360, height: 640 }),
 }));
 
 // Mock AsyncStorage
@@ -31,7 +31,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
   removeItem: jest.fn(),
   clear: jest.fn(),
-  getAllKeys: jest.fn()
+  getAllKeys: jest.fn(),
 }));
 
 // Mock RNFS
@@ -76,67 +76,67 @@ jest.mock('react-native-fs', () => ({
   ExternalStorageDirectoryPath: '/storage/emulated/0',
   TemporaryDirectoryPath: '/tmp',
   LibraryDirectoryPath: '/library',
-  PicturesDirectoryPath: '/pictures'
+  PicturesDirectoryPath: '/pictures',
 }));
 
 // Mock FFmpeg
 jest.mock('ffmpeg-kit-react-native', () => ({
   FFmpegKit: {
-    execute: jest.fn()
+    execute: jest.fn(),
   },
   FFprobeKit: {
-    execute: jest.fn()
+    execute: jest.fn(),
   },
   FFmpegKitConfig: {
-    enableRedirection: jest.fn()
-  }
+    enableRedirection: jest.fn(),
+  },
 }));
 
 // Mock React Native
 jest.mock('react-native', () => ({
   Platform: {
     OS: 'android',
-    select: jest.fn()
+    select: jest.fn(),
   },
   Dimensions: {
-    get: jest.fn(() => ({ width: 360, height: 640 }))
-  }
+    get: jest.fn(() => ({ width: 360, height: 640 })),
+  },
 }));
 
 // Mock navigation
 const mockNavigation = {
   navigate: jest.fn(),
   goBack: jest.fn(),
-  setOptions: jest.fn()
+  setOptions: jest.fn(),
 };
 
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => mockNavigation,
   useRoute: () => ({
-    params: { videoId: 'test-video' }
-  })
+    params: { videoId: 'test-video' },
+  }),
 }));
 
 // Mock Firebase
 const mockStorage = {
   ref: jest.fn(),
   uploadBytes: jest.fn(),
-  uploadBytesResumable: jest.fn()
+  uploadBytesResumable: jest.fn(),
 };
 
 jest.mock('firebase/storage', () => ({
   getStorage: () => mockStorage,
   ref: mockStorage.ref,
   uploadBytes: mockStorage.uploadBytes,
-  uploadBytesResumable: mockStorage.uploadBytesResumable
+  uploadBytesResumable: mockStorage.uploadBytesResumable,
 }));
 
 jest.mock('./src/config/firebase', () => ({
   auth: {
     currentUser: {
-      uid: 'test-user-123'
-    }
-  }
+      uid: 'test-user-123',
+    },
+  },
 }));
 
 // Mock video service
@@ -146,7 +146,7 @@ const mockVideo = {
   width: 720,
   height: 1280,
   type: 'video/mp4',
-  size: 1024 * 1024 // 1MB
+  size: 1024 * 1024, // 1MB
 };
 
 jest.mock('./src/services/video', () => ({
@@ -179,8 +179,8 @@ jest.mock('./src/services/video', () => ({
           width: 720,
           height: 1280,
           type: 'video/mp4',
-          size: 1024 * 1024
-        }
+          size: 1024 * 1024,
+        },
       };
     }),
     getVideo: jest.fn().mockResolvedValue(mockVideo),
@@ -191,7 +191,7 @@ jest.mock('./src/services/video', () => ({
     getVideoState: jest.fn().mockResolvedValue({
       id: 'test-video',
       uri: 'file:///test/video.mp4',
-      thumbnail: 'file:///test/thumbnail.jpg'
-    })
-  }
-})); 
+      thumbnail: 'file:///test/thumbnail.jpg',
+    }),
+  },
+}));

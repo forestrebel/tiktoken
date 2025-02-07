@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  TouchableOpacity, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
   FlatList,
   Dimensions,
   ActivityIndicator,
-  Alert
+  Alert,
 } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import { videoService } from '../services';
@@ -24,7 +24,7 @@ const ITEM_HEIGHT = (ITEM_WIDTH * 16) / 9;
  */
 export default function RecordScreen({ navigation }) {
   const [recording, setRecording] = useState(false);
-  
+
   const handleStartRecording = () => {
     // TODO: Implement recording functionality
     Alert.alert('Coming Soon', 'Video recording functionality will be available in the next update.');
@@ -33,7 +33,7 @@ export default function RecordScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Record Video</Text>
-      
+
       <TouchableOpacity
         style={styles.recordButton}
         onPress={handleStartRecording}
@@ -72,5 +72,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-  }
-}); 
+  },
+});

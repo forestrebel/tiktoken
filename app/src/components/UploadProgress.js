@@ -17,13 +17,13 @@ const STATES = {
   ERROR: 'error',
 };
 
-const UploadProgress = ({ 
-  onCancel, 
+const UploadProgress = ({
+  onCancel,
   onRetry,
   onComplete,
   uploadState = STATES.PREPARING,
   progress = 0,
-  error = null 
+  error = null,
 }) => {
   const [progressAnim] = useState(new Animated.Value(0));
 
@@ -40,26 +40,26 @@ const UploadProgress = ({
     switch (uploadState) {
       case STATES.SUCCESS:
         return (
-          <Icon 
-            name="checkmark-circle" 
-            size={48} 
+          <Icon
+            name="checkmark-circle"
+            size={48}
             color="#34c759"
           />
         );
-      
+
       case STATES.ERROR:
         return (
-          <Icon 
-            name="alert-circle" 
-            size={48} 
+          <Icon
+            name="alert-circle"
+            size={48}
             color="#ff3b30"
           />
         );
-      
+
       default:
         return (
-          <ActivityIndicator 
-            size="large" 
+          <ActivityIndicator
+            size="large"
             color="#007AFF"
           />
         );
@@ -70,16 +70,16 @@ const UploadProgress = ({
     switch (uploadState) {
       case STATES.PREPARING:
         return 'Preparing your video...';
-      
+
       case STATES.UPLOADING:
         return `Uploading: ${Math.round(progress)}%`;
-      
+
       case STATES.SUCCESS:
         return 'Upload complete!';
-      
+
       case STATES.ERROR:
         return error || 'Upload failed';
-      
+
       default:
         return '';
     }
@@ -97,7 +97,7 @@ const UploadProgress = ({
             <Text style={styles.actionText}>Cancel</Text>
           </TouchableOpacity>
         );
-      
+
       case STATES.ERROR:
         return (
           <TouchableOpacity
@@ -108,7 +108,7 @@ const UploadProgress = ({
             <Text style={styles.actionText}>Retry Upload</Text>
           </TouchableOpacity>
         );
-      
+
       case STATES.SUCCESS:
         return (
           <TouchableOpacity
@@ -119,7 +119,7 @@ const UploadProgress = ({
             <Text style={styles.actionText}>Done</Text>
           </TouchableOpacity>
         );
-      
+
       default:
         return null;
     }
@@ -132,15 +132,15 @@ const UploadProgress = ({
         {renderIcon()}
         {uploadState === STATES.UPLOADING && (
           <View style={styles.progressRing}>
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.progressFill,
                 {
                   width: progressAnim.interpolate({
                     inputRange: [0, 100],
-                    outputRange: ['0%', '100%']
-                  })
-                }
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
               ]}
             />
           </View>
@@ -231,4 +231,4 @@ const styles = StyleSheet.create({
 // Export states for external use
 UploadProgress.STATES = STATES;
 
-export default UploadProgress; 
+export default UploadProgress;

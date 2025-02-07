@@ -6,9 +6,9 @@ import RNFS from 'react-native-fs';
 jest.mock('../../config/firebase', () => ({
   auth: {
     currentUser: {
-      uid: 'test-user-123'
-    }
-  }
+      uid: 'test-user-123',
+    },
+  },
 }));
 
 // Mock RNFS
@@ -37,7 +37,7 @@ describe('Video Upload Flow', () => {
     height: 1280,
     fps: 30,
     duration: 45,
-    orientation: 'portrait'
+    orientation: 'portrait',
   };
 
   beforeEach(() => {
@@ -49,7 +49,7 @@ describe('Video Upload Flow', () => {
     RNFS.mkdir.mockResolvedValue(true);
     RNFS.stat.mockResolvedValue({
       size: testVideo.size,
-      mtime: new Date().toISOString()
+      mtime: new Date().toISOString(),
     });
     RNFS.readFile.mockResolvedValue('test-file-content');
     RNFS.copyFile.mockResolvedValue(true);
@@ -71,7 +71,7 @@ describe('Video Upload Flow', () => {
     it('should reject oversized video', async () => {
       RNFS.stat.mockResolvedValueOnce({
         size: 200 * 1024 * 1024, // 200MB
-        mtime: new Date().toISOString()
+        mtime: new Date().toISOString(),
       });
 
       await expect(videoService.importVideo(testVideo.uri)).rejects.toThrow(/under/);
@@ -97,8 +97,8 @@ describe('Video Upload Flow', () => {
           width: 1280,
           height: 720,
           codec_name: 'h264',
-          duration: '45'
-        }]
+          duration: '45',
+        }],
       });
 
       // TODO: Mock FFprobeKit properly
@@ -154,4 +154,4 @@ describe('Video Upload Flow', () => {
       expect(RNFS.unlink).toHaveBeenCalled();
     });
   });
-}); 
+});
