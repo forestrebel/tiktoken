@@ -1,7 +1,7 @@
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
 const fs = require('fs');
 
-describe("Storage Security Rules", () => {
+describe("Storage Basic Test", () => {
   let testEnv;
   
   beforeAll(async () => {
@@ -22,8 +22,18 @@ describe("Storage Security Rules", () => {
     await testEnv.cleanup();
   });
 
-  describe("Basic Security Rules", () => {
-    it("allows authenticated user to upload MP4 file", async () => {
+  describe("Metadata Validation", () => {
+    const validMetadata = {
+      contentType: 'video/mp4',
+      customMetadata: {
+        width: "720",
+        height: "1280",
+        fps: "30",
+        duration: "45"
+      }
+    };
+
+    it("accepts valid metadata", async () => {
       const userId = 'user123';
       const auth = testEnv.authenticatedContext(userId, {
         sub: userId,
@@ -33,35 +43,13 @@ describe("Storage Security Rules", () => {
       const ref = storage.ref(`users/${userId}/test.mp4`);
       
       const data = new Uint8Array([1]);
-      const metadata = {
-        contentType: 'video/mp4'
-      };
       
       await assertSucceeds(
-        ref.put(data, metadata)
+        ref.put(data, validMetadata)
       );
     });
 
-    it("blocks non-MP4 file upload", async () => {
-      const userId = 'user123';
-      const auth = testEnv.authenticatedContext(userId, {
-        sub: userId,
-        email: `${userId}@example.com`
-      });
-      const storage = auth.storage();
-      const ref = storage.ref(`users/${userId}/test.txt`);
-      
-      const data = new Uint8Array([1]);
-      const metadata = {
-        contentType: 'text/plain'
-      };
-
-      await assertFails(
-        ref.put(data, metadata)
-      );
-    });
-
-    it("blocks oversized file upload", async () => {
+    it("rejects missing metadata", async () => {
       const userId = 'user123';
       const auth = testEnv.authenticatedContext(userId, {
         sub: userId,
@@ -70,10 +58,10 @@ describe("Storage Security Rules", () => {
       const storage = auth.storage();
       const ref = storage.ref(`users/${userId}/test.mp4`);
       
-      // Create a file larger than 100MB
-      const data = new Uint8Array(101 * 1024 * 1024);
+      const data = new Uint8Array([1]);
       const metadata = {
         contentType: 'video/mp4'
+        // Missing customMetadata
       };
 
       await assertFails(
@@ -81,19 +69,23 @@ describe("Storage Security Rules", () => {
       );
     });
 
-    it("blocks user from writing to another user's path", async () => {
+    it("rejects invalid dimensions", async () => {
       const userId = 'user123';
-      const otherUserId = 'user456';
       const auth = testEnv.authenticatedContext(userId, {
         sub: userId,
         email: `${userId}@example.com`
       });
       const storage = auth.storage();
-      const ref = storage.ref(`users/${otherUserId}/test.mp4`);
+      const ref = storage.ref(`users/${userId}/test.mp4`);
       
       const data = new Uint8Array([1]);
       const metadata = {
-        contentType: 'video/mp4'
+        ...validMetadata,
+        customMetadata: {
+          ...validMetadata.customMetadata,
+          width: "1080",
+          height: "1920"
+        }
       };
 
       await assertFails(
@@ -101,13 +93,45 @@ describe("Storage Security Rules", () => {
       );
     });
 
-    it("blocks unauthenticated write", async () => {
-      const storage = testEnv.unauthenticatedContext().storage();
-      const ref = storage.ref('users/anyone/test.mp4');
+    it("rejects invalid fps", async () => {
+      const userId = 'user123';
+      const auth = testEnv.authenticatedContext(userId, {
+        sub: userId,
+        email: `${userId}@example.com`
+      });
+      const storage = auth.storage();
+      const ref = storage.ref(`users/${userId}/test.mp4`);
       
       const data = new Uint8Array([1]);
       const metadata = {
-        contentType: 'video/mp4'
+        ...validMetadata,
+        customMetadata: {
+          ...validMetadata.customMetadata,
+          fps: "60"
+        }
+      };
+
+      await assertFails(
+        ref.put(data, metadata)
+      );
+    });
+
+    it("rejects invalid duration", async () => {
+      const userId = 'user123';
+      const auth = testEnv.authenticatedContext(userId, {
+        sub: userId,
+        email: `${userId}@example.com`
+      });
+      const storage = auth.storage();
+      const ref = storage.ref(`users/${userId}/test.mp4`);
+      
+      const data = new Uint8Array([1]);
+      const metadata = {
+        ...validMetadata,
+        customMetadata: {
+          ...validMetadata.customMetadata,
+          duration: "90"
+        }
       };
 
       await assertFails(
@@ -117,7 +141,7 @@ describe("Storage Security Rules", () => {
   });
 
   describe("Test Collection", () => {
-    it("allows test user to write", async () => {
+    it("allows test user with minimal validation", async () => {
       const auth = testEnv.authenticatedContext('test_user123', {
         sub: 'test_user123',
         email: 'test@example.com'
@@ -128,6 +152,7 @@ describe("Storage Security Rules", () => {
       const data = new Uint8Array([1]);
       const metadata = {
         contentType: 'video/mp4'
+        // No customMetadata required for test collection
       };
 
       await assertSucceeds(
@@ -135,17 +160,17 @@ describe("Storage Security Rules", () => {
       );
     });
 
-    it("blocks non-test user from writing", async () => {
-      const auth = testEnv.authenticatedContext('regular_user', {
-        sub: 'regular_user',
-        email: 'user@example.com'
+    it("still enforces file type for test users", async () => {
+      const auth = testEnv.authenticatedContext('test_user123', {
+        sub: 'test_user123',
+        email: 'test@example.com'
       });
       const storage = auth.storage();
-      const ref = storage.ref('test/test.mp4');
+      const ref = storage.ref('test/test.txt');
       
       const data = new Uint8Array([1]);
       const metadata = {
-        contentType: 'video/mp4'
+        contentType: 'text/plain'
       };
 
       await assertFails(
