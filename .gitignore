@@ -82,3 +82,31 @@ fastlane/test_output
 # Ruby / CocoaPods
 /ios/Pods/
 /vendor/bundle/
+
+# dependencies
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# next.js
+.next/
+out/
+build
+dist
+
+# misc
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# FFmpeg
+public/ffmpeg-core.*
