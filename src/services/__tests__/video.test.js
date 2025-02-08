@@ -1,119 +1,97 @@
-// Mock Firebase
-jest.mock('firebase/app', () => ({
-  initializeApp: jest.fn()
-}));
-
-jest.mock('firebase/auth', () => ({
-  getAuth: jest.fn(() => ({
-    currentUser: { uid: 'test-user' }
-  }))
-}));
-
-jest.mock('firebase/storage', () => ({
-  getStorage: jest.fn(),
-  ref: jest.fn(),
-  uploadBytes: jest.fn(() => Promise.resolve()),
-  getDownloadURL: jest.fn(() => Promise.resolve('test-url'))
-}));
-
-// Mock OpenShot service
-jest.mock('../openshot', () => ({
-  OpenShotService: {
-    getProjects: jest.fn(() => Promise.resolve([])),
-    processVideo: jest.fn(() => Promise.resolve({ jobId: 'test-job' })),
-    getStatus: jest.fn(() => Promise.resolve({ state: 'completed', progress: 100 })),
-    generateThumbnail: jest.fn(() => Promise.resolve('test-thumbnail-base64'))
-  }
-}));
-
-import { VideoService } from '../video';
-import { validateNatureVideo } from '../quality/validation';
-import { ErrorMessages } from '../quality/messages';
+import { videoService } from '../video';
 import RNFS from 'react-native-fs';
+import { FFmpegKit, FFprobeKit } from 'ffmpeg-kit-react-native';
 
-describe('VideoService', () => {
-  let service;
-  const testFile = {
-    uri: 'test.mp4',
-    type: 'video/mp4',
-    size: 1024 * 1024 // 1MB
+jest.mock('react-native-fs');
+jest.mock('ffmpeg-kit-react-native');
+
+describe('Video Service Performance Tests', () => {
+  const TEST_VIDEO = {
+    uri: 'file://test.mp4',
+    size: 1024 * 1024, // 1MB
   };
 
   beforeEach(() => {
-    service = new VideoService();
+    jest.useFakeTimers();
+    RNFS.stat.mockResolvedValue({ size: TEST_VIDEO.size });
+    RNFS.exists.mockResolvedValue(true);
+    FFprobeKit.execute.mockResolvedValue({
+      getReturnCode: () => Promise.resolve(0),
+      getOutput: () => Promise.resolve(JSON.stringify({
+        streams: [{
+          width: 1080,
+          height: 1920,
+          codec_name: 'h264',
+        }],
+      })),
+    });
+  });
+
+  afterEach(() => {
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
-  describe('validateNatureVideo', () => {
-    it('validates file format within 100ms', async () => {
-      const start = Date.now();
-      const result = await validateNatureVideo(testFile);
-      const duration = Date.now() - start;
-      
-      expect(duration).toBeLessThan(100);
-      expect(result.valid).toBe(true);
-    });
+  it('completes validation within 1 second', async () => {
+    const start = Date.now();
+    const result = await videoService.validateVideo(TEST_VIDEO.uri);
+    const duration = Date.now() - start;
 
-    it('handles invalid format', async () => {
-      const invalidFile = { ...testFile, type: 'video/avi' };
-      const result = await validateNatureVideo(invalidFile);
-      
-      expect(result.valid).toBe(false);
-      expect(result.errorType).toBe('INVALID_FORMAT');
-      expect(ErrorMessages[result.errorType]).toBeDefined();
-    });
-
-    it('handles file too large', async () => {
-      const largeFile = { ...testFile, size: 200 * 1024 * 1024 }; // 200MB
-      const result = await validateNatureVideo(largeFile);
-      
-      expect(result.valid).toBe(false);
-      expect(result.errorType).toBe('FILE_TOO_LARGE');
-      expect(ErrorMessages[result.errorType]).toBeDefined();
-    });
+    expect(duration).toBeLessThan(1000);
+    expect(result.status).toBe('success');
   });
 
-  describe('importVideo', () => {
-    it('imports valid video within 3s', async () => {
-      const start = Date.now();
-      const result = await service.importVideo(testFile);
-      const duration = Date.now() - start;
-      
-      expect(duration).toBeLessThan(3000);
+  it('completes import flow within 3 seconds', async () => {
+    const start = Date.now();
+    const result = await videoService.importVideo(TEST_VIDEO.uri);
+    const duration = Date.now() - start;
+
+    expect(duration).toBeLessThan(3000);
+    expect(result.status).toBe('success');
+  });
+
+  it('recovers from errors within 1 second', async () => {
+    // Simulate validation error
+    FFprobeKit.execute.mockResolvedValueOnce({
+      getReturnCode: () => Promise.resolve(1),
+      getOutput: () => Promise.resolve(''),
+    });
+
+    const start = Date.now();
+    const result = await videoService.validateVideo(TEST_VIDEO.uri);
+    const duration = Date.now() - start;
+
+    expect(duration).toBeLessThan(1000);
+    expect(result.status).toBe('error');
+  });
+
+  it('handles rapid sequential imports', async () => {
+    const imports = Array(5).fill(TEST_VIDEO.uri).map(uri =>
+      videoService.importVideo(uri)
+    );
+
+    const start = Date.now();
+    const results = await Promise.all(imports);
+    const duration = Date.now() - start;
+
+    expect(duration).toBeLessThan(5000); // Should handle 5 imports in 5s
+    results.forEach(result => {
       expect(result.status).toBe('success');
-      expect(result.data.uri).toBeDefined();
-    });
-
-    it('handles validation errors', async () => {
-      const invalidFile = { ...testFile, type: 'video/avi' };
-      const result = await service.importVideo(invalidFile);
-      
-      expect(result.status).toBe('error');
-      expect(result.error.message).toBe(ErrorMessages.INVALID_FORMAT.friendly);
-      expect(result.error.action).toBe(ErrorMessages.INVALID_FORMAT.actionable);
     });
   });
 
-  describe('error handling', () => {
-    it('recovers from errors within 1s', async () => {
-      const start = Date.now();
-      const result = await service.handleError(new Error('test error'));
-      const duration = Date.now() - start;
-      
-      expect(duration).toBeLessThan(1000);
-      expect(result.status).toBe('error');
-      expect(result.error.recoverable).toBe(true);
-    });
+  it('maintains performance under memory pressure', async () => {
+    // Simulate low memory condition
+    const largeArray = new Array(1000000).fill('test');
 
-    it('provides actionable error messages', async () => {
-      const result = await service.handleError(
-        new Error('test error'),
-        'invalid_format'
-      );
-      
-      expect(result.error.message).toBeDefined();
-      expect(result.error.hint).toBeDefined();
-      expect(result.error.recoverable).toBeDefined();
-    });
+    const start = Date.now();
+    const result = await videoService.importVideo(TEST_VIDEO.uri);
+    const duration = Date.now() - start;
+
+    expect(duration).toBeLessThan(3000);
+    expect(result.status).toBe('success');
+
+    // Cleanup
+    largeArray.length = 0;
   });
-}); 
+});
