@@ -4,14 +4,8 @@ import { auth } from '../config/firebase';
 import { OpenShotService } from './openshot';
 import RNFS from 'react-native-fs';
 import { execSync } from 'child_process';
-
-// Performance targets
-const TIMING = {
-  VALIDATION: 100,  // 100ms for validation
-  UPLOAD: 2000,     // 2s for upload
-  RECOVERY: 1000,   // 1s for error handling
-  PREVIEW: 3000     // 3s for preview
-};
+import { ErrorMessages } from './quality/messages';
+import { validateNatureVideo, TIMING, checkPerformance } from './quality/validation';
 
 // Environment checks
 const REQUIRED_ENV = {
@@ -48,6 +42,17 @@ export class VideoService {
 
     // Verify on init
     this.verifyIntegrations();
+  }
+
+  async ensureCacheDir() {
+    try {
+      const exists = await RNFS.exists(this.cacheDir);
+      if (!exists) {
+        await RNFS.mkdir(this.cacheDir);
+      }
+    } catch (error) {
+      console.warn('Failed to create cache directory:', error);
+    }
   }
 
   // Environment protection
@@ -136,22 +141,31 @@ export class VideoService {
   async importVideo(file) {
     const start = Date.now();
     try {
-      // Verify integrations on each import
-      await this.verifyIntegrations();
-
       // Fast validation (target: 100ms)
-      const validation = await this.validateVideo(file);
+      const validation = await validateNatureVideo(file);
       if (!validation.valid) {
-        return this.handleError(validation.error);
+        return {
+          status: 'error',
+          error: {
+            message: ErrorMessages[validation.errorType].friendly,
+            action: ErrorMessages[validation.errorType].actionable
+          }
+        };
       }
 
       // Auth check (should be instant)
       const userId = auth.currentUser?.uid;
       if (!userId) {
-        return this.handleError(new Error('Authentication required'), 'auth_error');
+        return {
+          status: 'error',
+          error: {
+            message: ErrorMessages.AUTH_ERROR.friendly,
+            action: ErrorMessages.AUTH_ERROR.actionable
+          }
+        };
       }
 
-      // Prepare upload (parallel operations)
+      // Prepare upload
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
       const storageRef = ref(this.storage, `users/${userId}/videos/${fileName}`);
       
@@ -160,11 +174,7 @@ export class VideoService {
         RNFS.readFile(file.uri, 'base64'),
         {
           contentType: 'video/mp4',
-          customMetadata: {
-            width: VIDEO_CONSTRAINTS.dimensions.width.toString(),
-            height: VIDEO_CONSTRAINTS.dimensions.height.toString(),
-            userId
-          }
+          customMetadata: { userId }
         }
       ]);
 
@@ -173,74 +183,47 @@ export class VideoService {
       await uploadBytes(storageRef, blob, metadata);
       const downloadUrl = await getDownloadURL(storageRef);
 
-      // Start OpenShot processing (should be < 500ms)
-      const processing = await this.openshot.processVideo(downloadUrl);
-
-      const duration = this.checkPerformance('upload', start, TIMING.UPLOAD);
+      const duration = checkPerformance('upload', start, TIMING.UPLOAD);
       return {
         status: 'success',
         data: {
-          id: processing.jobId,
           uri: downloadUrl,
-          width: VIDEO_CONSTRAINTS.dimensions.width,
-          height: VIDEO_CONSTRAINTS.dimensions.height,
           duration
         }
       };
     } catch (error) {
-      if (error.message.includes('Integration Error')) {
-        console.error('Integration Error:', error.message);
-        console.error('Run make test.clean test.setup to reset environment');
-      }
-      return this.handleError(error);
+      return {
+        status: 'error',
+        error: {
+          message: ErrorMessages.UNKNOWN.friendly,
+          action: ErrorMessages.UNKNOWN.actionable
+        }
+      };
     }
   }
 
   async getVideoPreview(videoId) {
     const start = Date.now();
     try {
-      // Verify integrations on each preview
-      await this.verifyIntegrations();
-
-      // Check processing status (target: 500ms)
-      const status = await this.openshot.getStatus(videoId);
-      if (status.state === 'failed') {
-        return this.handleError(new Error(status.error), 'processing_failed');
-      }
-
-      if (status.state !== 'completed') {
-        return {
-          status: 'processing',
-          data: {
-            jobId: videoId,
-            progress: status.progress
-          }
-        };
-      }
-
-      // Parallel operations for preview
-      const [url, thumbnail] = await Promise.all([
-        getDownloadURL(ref(this.storage, `processed/${videoId}.mp4`)),
-        this.generateThumbnail(videoId)
-      ]);
-
-      const duration = this.checkPerformance('preview', start, TIMING.PREVIEW);
+      // Get video URL
+      const url = await getDownloadURL(ref(this.storage, `users/${auth.currentUser?.uid}/videos/${videoId}`));
+      
+      const duration = checkPerformance('preview', start, TIMING.PREVIEW);
       return {
         status: 'success',
         data: {
           uri: url,
-          width: VIDEO_CONSTRAINTS.dimensions.width,
-          height: VIDEO_CONSTRAINTS.dimensions.height,
-          thumbnail: thumbnail.path,
           duration
         }
       };
     } catch (error) {
-      if (error.message.includes('Integration Error')) {
-        console.error('Integration Error:', error.message);
-        console.error('Run make test.clean test.setup to reset environment');
-      }
-      return this.handleError(error);
+      return {
+        status: 'error',
+        error: {
+          message: ErrorMessages.PROCESSING_FAILED.friendly,
+          action: ErrorMessages.PROCESSING_FAILED.actionable
+        }
+      };
     }
   }
 
