@@ -3,11 +3,10 @@
 buildscript {
     ext {
         buildToolsVersion = "33.0.0"
-        minSdkVersion = 21
+        minSdkVersion = 24
         compileSdkVersion = 33
         targetSdkVersion = 33
         ndkVersion = "23.1.7779620"
-        kotlinVersion = "1.8.20"
     }
     repositories {
         google()
@@ -15,15 +14,12 @@ buildscript {
     }
     dependencies {
         classpath("com.android.tools.build:gradle:7.3.1")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath("com.facebook.react:react-native-gradle-plugin")
     }
 }
 
 allprojects {
     repositories {
-        google()  // Move to top for priority
-        mavenCentral()
         maven {
             // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
             url("$rootDir/../node_modules/react-native/android")
@@ -32,6 +28,22 @@ allprojects {
             // Android JSC is installed from npm
             url("$rootDir/../node_modules/jsc-android/dist")
         }
+        mavenCentral()
+        google()
         maven { url 'https://www.jitpack.io' }
+    }
+}
+
+// Add Java toolchain configuration
+subprojects { project ->
+    afterEvaluate {
+        if (project.hasProperty('android')) {
+            android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_11
+                    targetCompatibility JavaVersion.VERSION_11
+                }
+            }
+        }
     }
 }

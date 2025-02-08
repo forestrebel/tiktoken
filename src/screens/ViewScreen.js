@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, Dimensions } from 'react-native';
 import VideoPlayer from '../components/VideoPlayer';
-import { videoService } from '../services';
+import { videoService } from '../services/video';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const VIDEO_HEIGHT = (SCREEN_WIDTH * 16) / 9; // Force 9:16 aspect ratio
@@ -66,13 +66,13 @@ export default function ViewScreen({ route }) {
 
   // For demo videos, use a bundled asset
   const source = video.id.startsWith('demo')
-    ? require('../assets/demo1.mp4')  // This will be our demo video
+    ? require('../assets/demo/video_2025-02-05_20-14-03.mp4')  // Use an existing demo video
     : { uri: video.uri || videoService.getVideoPath(video.filename) };
 
   return (
     <View style={styles.container}>
       <VideoPlayer
-        url={source.uri}
+        url={source.uri || source}
         onError={handleError}
       />
     </View>
