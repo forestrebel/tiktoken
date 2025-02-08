@@ -1,6 +1,10 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
 
+/**
+ * Video processing utility for client-side video compression and thumbnail generation
+ * @class VideoProcessor
+ */
 class VideoProcessor {
   constructor() {
     // Only initialize FFmpeg in browser environment
@@ -10,6 +14,11 @@ class VideoProcessor {
     this.loaded = false
   }
 
+  /**
+   * Loads FFmpeg WASM in browser environment
+   * @returns {Promise<void>}
+   * @throws {Error} If FFmpeg fails to initialize
+   */
   async load() {
     if (this.loaded || typeof window === 'undefined') return
 
@@ -28,6 +37,17 @@ class VideoProcessor {
     }
   }
 
+  /**
+   * Compresses video file to target size while maintaining quality
+   * @param {File} file - Original video file
+   * @param {Object} options - Compression options
+   * @param {number} [options.maxSize=100MB] - Target file size in bytes
+   * @param {string} [options.targetBitrate='2M'] - Target bitrate
+   * @param {number} [options.maxWidth=720] - Maximum width
+   * @param {number} [options.maxHeight=1280] - Maximum height
+   * @param {Function} [options.onProgress] - Progress callback
+   * @returns {Promise<File>} Compressed video file
+   */
   async compress(file, options = {}) {
     await this.load()
 
@@ -87,6 +107,16 @@ class VideoProcessor {
     }
   }
 
+  /**
+   * Generates video thumbnail at specified timestamp
+   * @param {File} file - Video file
+   * @param {Object} options - Thumbnail options
+   * @param {number} [options.time=0] - Timestamp in seconds
+   * @param {number} [options.width=720] - Output width
+   * @param {number} [options.height=1280] - Output height
+   * @param {number} [options.quality=90] - JPEG quality (1-100)
+   * @returns {Promise<Blob>} Thumbnail as JPEG blob
+   */
   async generateThumbnail(file, options = {}) {
     await this.load()
 
@@ -129,6 +159,9 @@ class VideoProcessor {
     }
   }
 
+  /**
+   * Cleans up FFmpeg instance
+   */
   terminate() {
     if (this.loaded) {
       this.ffmpeg.terminate()
