@@ -9,13 +9,6 @@ export const metadata = {
   title: 'TikToken - Nature Content Platform',
   description: 'Share and discover amazing nature content',
   manifest: '/manifest.json',
-  themeColor: '#000000',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -33,14 +26,24 @@ export const metadata = {
   },
 }
 
+export const viewport = {
+  themeColor: '#000000',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Layout>
-          <ErrorDisplay />
-          {children}
-        </Layout>
+      <body className={`${inter.className} bg-black text-white min-h-screen`}>
+        <main className="flex flex-col min-h-screen">
+          <Layout>
+            <ErrorDisplay />
+            {children}
+          </Layout>
+        </main>
       </body>
     </html>
   )

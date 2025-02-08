@@ -3,12 +3,15 @@ import { fetchFile, toBlobURL } from '@ffmpeg/util'
 
 class VideoProcessor {
   constructor() {
-    this.ffmpeg = new FFmpeg()
+    // Only initialize FFmpeg in browser environment
+    if (typeof window !== 'undefined') {
+      this.ffmpeg = new FFmpeg()
+    }
     this.loaded = false
   }
 
   async load() {
-    if (this.loaded) return
+    if (this.loaded || typeof window === 'undefined') return
 
     try {
       // Load FFmpeg with CORS headers
