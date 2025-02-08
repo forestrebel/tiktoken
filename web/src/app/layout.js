@@ -1,28 +1,46 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
+import Layout from '@/components/Layout'
+import ErrorDisplay from '@/components/ErrorDisplay'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'TikToken - Nature Content Platform',
   description: 'Share and discover amazing nature content',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0',
+  manifest: '/manifest.json',
   themeColor: '#000000',
-  manifest: '/manifest.json'
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'TikToken',
+  },
+  applicationName: 'TikToken',
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    apple: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+  },
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-        <meta name="theme-color" content="#000000" />
-        <link rel="manifest" href="/manifest.json" />
-      </head>
-      <body className={`${inter.className} bg-black text-white min-h-screen`}>
-        <main className="flex flex-col min-h-screen">
+      <body className={inter.className}>
+        <Layout>
+          <ErrorDisplay />
           {children}
-        </main>
+        </Layout>
       </body>
     </html>
   )

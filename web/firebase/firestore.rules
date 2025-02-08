@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Videos collection
+    match /videos/{videoId} {
+      allow read: if true;  // Public read access
+      allow create: if true; // Allow uploads (we'll add auth later)
+      allow update, delete: if false; // No updates/deletes for now
+    }
+  }
+} 

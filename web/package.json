@@ -9,12 +9,23 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@supabase/supabase-js": "^2.48.1",
     "next": "14.1.0",
+    "next-pwa": "^5.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",
-    "video.js": "^8.10.0",
+    "react-intersection-observer": "^9.15.1",
+    "video.js": "^8.21.0",
+    "workbox-cacheable-response": "^7.3.0",
+    "workbox-expiration": "^7.3.0",
+    "workbox-precaching": "^7.3.0",
+    "workbox-recipes": "^7.3.0",
+    "workbox-routing": "^7.3.0",
+    "workbox-strategies": "^7.3.0",
+    "workbox-window": "^7.3.0",
     "zustand": "^4.5.0"
   },
   "devDependencies": {
