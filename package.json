@@ -22,8 +22,8 @@
     "react-native-document-picker": "9.0.1",
     "react-native-dotenv": "^3.4.11",
     "react-native-fs": "^2.20.0",
-    "react-native-safe-area-context": "^5.2.0",
-    "react-native-screens": "^4.6.0",
+    "react-native-safe-area-context": "5.2.0",
+    "react-native-screens": "4.6.0",
     "react-native-video": "5.2.1"
   },
   "devDependencies": {
