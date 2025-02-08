@@ -9,15 +9,12 @@ const config = {
       },
     }),
   },
-  watchFolders: [
-    // Add custom folders to watch here
-  ],
   resolver: {
-    blockList: [
-      // Exclude Kotlin cache directories
-      /.*\.kotlin.*/,
-      /.*\build\kotlin.*/,
+    assetExts: [
+      'mp4',
+      'mov',
     ],
+    sourceExts: ['js', 'json', 'jsx'],
   },
 };
 

@@ -190,9 +190,9 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const handleVideoPress = useCallback((video) => {
+  const handleVideoPress = useCallback((videoFilename) => {
     Vibration.vibrate(50); // Haptic feedback
-    navigation.navigate('View', { videoId: video.id });
+    navigation.navigate('View', { videoId: videoFilename });
   }, [navigation]);
 
   const handleReset = async () => {
@@ -230,7 +230,7 @@ const HomeScreen = ({ navigation }) => {
     >
       <View style={styles.thumbnail}>
         <Text style={styles.thumbnailText}>
-          {new Date(item.created_at).toLocaleDateString()}
+          {item.replace('video_', '').replace('.mp4', '')}
         </Text>
       </View>
     </TouchableOpacity>
@@ -260,7 +260,7 @@ const HomeScreen = ({ navigation }) => {
         <FlatList
           data={videos}
           renderItem={renderVideo}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item}
           numColumns={COLUMN_COUNT}
           contentContainerStyle={styles.grid}
         />
