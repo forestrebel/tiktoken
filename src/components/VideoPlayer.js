@@ -1,7 +1,11 @@
+'use client'
 import React, { useRef, useState, useEffect } from 'react';
 import { StyleSheet, View, Dimensions, TouchableWithoutFeedback, Text } from 'react-native';
 import Video from 'react-native-video';
 import RNFS from 'react-native-fs';
+import { motion } from 'framer-motion';
+import videojs from 'video.js';
+import 'video.js/dist/video-js.css';
 
 // Video format validation
 const SUPPORTED_FORMATS = {
@@ -12,8 +16,9 @@ const SUPPORTED_FORMATS = {
 const MAX_BITRATE = 5000000; // 5 Mbps max for smooth playback
 const CACHE_EXPIRY_HOURS = 24;
 
-const VideoPlayer = ({ url, onError, onProgress }) => {
+const VideoPlayer = ({ url, onError, onProgress, autoPlay = false, loop = true, controls = true }) => {
   const videoRef = useRef(null);
+  const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [localUrl, setLocalUrl] = useState(null);
@@ -136,6 +141,62 @@ const VideoPlayer = ({ url, onError, onProgress }) => {
     };
   }, [url]);
 
+  useEffect(() => {
+    if (!videoRef.current) return;
+
+    playerRef.current = videojs(videoRef.current, {
+      autoplay: autoPlay,
+      controls: controls,
+      loop: loop,
+      responsive: true,
+      fluid: true,
+      aspectRatio: '9:16',
+      playbackRates: [0.5, 1, 1.5, 2],
+      userActions: {
+        hotkeys: true,
+        doubleClick: true
+      },
+      controlBar: {
+        children: [
+          'playToggle',
+          'progressControl',
+          'volumePanel',
+          'playbackRateMenuButton',
+          'fullscreenToggle',
+        ],
+      },
+      html5: {
+        vhs: {
+          overrideNative: true
+        },
+        nativeAudioTracks: false,
+        nativeVideoTracks: false
+      }
+    });
+
+    // Lock to portrait orientation if supported
+    if (typeof window !== 'undefined' && screen.orientation?.lock) {
+      screen.orientation.lock('portrait').catch(() => {
+        // Silently fail if orientation lock is not supported
+      });
+    }
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.dispose();
+      }
+    };
+  }, [autoPlay, controls, loop]);
+
+  useEffect(() => {
+    if (!playerRef.current || !url) return;
+    
+    playerRef.current.src({
+      src: url,
+      type: 'video/mp4'
+    });
+  }, [url]);
+
   const handleLoad = (metadata) => {
     console.log('Video loaded:', metadata);
     setVideoInfo(metadata);
@@ -204,54 +265,63 @@ const VideoPlayer = ({ url, onError, onProgress }) => {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={togglePlayback}>
-      <View style={[styles.container, { width, height }]}>
-        {localUrl && !error && (
-          <Video
-            ref={videoRef}
-            source={{ uri: localUrl }}
-            style={[styles.video, { width: videoWidth, height: videoHeight }]}
-            resizeMode="cover"
-            onLoad={handleLoad}
-            onError={handleError}
-            onProgress={handleProgress}
-            paused={!isPlaying}
-            repeat={true}
-            controls={false}
-            ignoreSilentSwitch="ignore"
-            playInBackground={false}
-            playWhenInactive={false}
-            useTextureView={true}
-            maxBitRate={MAX_BITRATE}
-            bufferConfig={{
-              minBufferMs: 1500,
-              maxBufferMs: 6000,
-              bufferForPlaybackMs: 1500,
-              bufferForPlaybackAfterRebufferMs: 3000,
-            }}
-            androidHardwareAcceleration="true"
-            reportBandwidth={true}
-            textTracks={[]}
-            selectedTextTrack={{ type: 'disabled' }}
-            onBandwidthUpdate={(data) => {
-              if (data.bitrate > MAX_BITRATE) {
-                console.warn('High bandwidth usage detected');
-              }
-            }}
-          />
-        )}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableWithoutFeedback onPress={retryPlayback}>
-              <View style={styles.retryButton}>
-                <Text style={styles.retryText}>Retry</Text>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        )}
-      </View>
-    </TouchableWithoutFeedback>
+    <motion.div
+      layoutId={`video-${url}`}
+      className="video-container relative aspect-[9/16] bg-black"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+    >
+      <TouchableWithoutFeedback onPress={togglePlayback}>
+        <View style={[styles.container, { width, height }]}>
+          {localUrl && !error && (
+            <Video
+              ref={videoRef}
+              source={{ uri: localUrl }}
+              style={[styles.video, { width: videoWidth, height: videoHeight }]}
+              resizeMode="cover"
+              onLoad={handleLoad}
+              onError={handleError}
+              onProgress={handleProgress}
+              paused={!isPlaying}
+              repeat={true}
+              controls={false}
+              ignoreSilentSwitch="ignore"
+              playInBackground={false}
+              playWhenInactive={false}
+              useTextureView={true}
+              maxBitRate={MAX_BITRATE}
+              bufferConfig={{
+                minBufferMs: 1500,
+                maxBufferMs: 6000,
+                bufferForPlaybackMs: 1500,
+                bufferForPlaybackAfterRebufferMs: 3000,
+              }}
+              androidHardwareAcceleration="true"
+              reportBandwidth={true}
+              textTracks={[]}
+              selectedTextTrack={{ type: 'disabled' }}
+              onBandwidthUpdate={(data) => {
+                if (data.bitrate > MAX_BITRATE) {
+                  console.warn('High bandwidth usage detected');
+                }
+              }}
+            />
+          )}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableWithoutFeedback onPress={retryPlayback}>
+                <View style={styles.retryButton}>
+                  <Text style={styles.retryText}>Retry</Text>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          )}
+        </View>
+      </TouchableWithoutFeedback>
+    </motion.div>
   );
 };
 

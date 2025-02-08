@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import ErrorDisplay from './ErrorDisplay'
+import { PageTransition } from './Transitions'
 
 export default function Layout({ children }) {
   const { menuOpen, toggleMenu, closeMenu, darkMode } = useStore()
@@ -69,7 +70,9 @@ export default function Layout({ children }) {
 
       {/* Main Content */}
       <main className="flex-1">
-        {children}
+        <PageTransition>
+          {children}
+        </PageTransition>
       </main>
 
       {/* Mobile Navigation Bar */}

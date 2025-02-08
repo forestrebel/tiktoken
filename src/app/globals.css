@@ -20,6 +20,38 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+@layer utilities {
+  .tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+  }
+  
+  .tap-highlight:active {
+    opacity: 0.7;
+  }
+}
+
+/* Loading shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.2) 50%,
+    rgba(255,255,255,0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
 /* Smooth scrolling for feed */
 .snap-y {
   scroll-snap-type: y mandatory;
@@ -42,6 +74,36 @@ body {
 
 .overflow-y-scroll::-webkit-scrollbar {
   display: none;
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Video player animations */
+.video-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.video-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.video-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.video-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 300ms, transform 300ms;
 }
 
 /* Video.js Custom Theme */

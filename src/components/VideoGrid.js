@@ -4,9 +4,11 @@ import { useStore } from '@/lib/store'
 import { useInView } from 'react-intersection-observer'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
+import VideoSkeleton from './VideoSkeleton'
+import { FadeIn } from './Transitions'
 
 export default function VideoGrid() {
-  const { videos, hasMore, page, addVideos, setError } = useStore()
+  const { videos, hasMore, page, addVideos, setError, loading } = useStore()
   const { ref, inView } = useInView()
 
   const loadVideos = async () => {
@@ -45,22 +47,29 @@ export default function VideoGrid() {
     <div className="p-4">
       <div className="grid grid-cols-2 gap-4">
         {videos.map(video => (
-          <Link
-            key={video.id}
-            href={`/watch/${video.id}`}
-            className="aspect-[9/16] relative rounded-lg overflow-hidden bg-gray-800"
-          >
-            <video
-              src={video.url}
-              className="absolute inset-0 w-full h-full object-cover"
-              preload="metadata"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
-            <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
-              <p className="text-sm truncate">{video.title}</p>
-            </div>
-          </Link>
+          <FadeIn key={video.id}>
+            <Link
+              href={`/watch/${video.id}`}
+              className="aspect-[9/16] relative rounded-lg overflow-hidden bg-gray-800 tap-highlight"
+            >
+              <video
+                src={video.url}
+                className="absolute inset-0 w-full h-full object-cover"
+                preload="metadata"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
+              <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                <p className="text-sm truncate">{video.title}</p>
+              </div>
+            </Link>
+          </FadeIn>
         ))}
+        {loading && (
+          <>
+            <VideoSkeleton />
+            <VideoSkeleton />
+          </>
+        )}
       </div>
 
       {hasMore && (
