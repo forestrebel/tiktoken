@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="58" failures="18" errors="0" time="1.7">
+  <testsuite name="Demo Flow Protection" errors="0" failures="5" skipped="0" timestamp="2025-02-07T23:15:32" time="0.144" tests="12">
+    <testcase classname="Demo Flow Protection Import Flow (3s limit) completes basic import within 3s" name="Demo Flow Protection Import Flow (3s limit) completes basic import within 3s" time="0.002">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;success&quot;
+Received: undefined
+    at Object.toBe (/home/jon/git/tiktoken/app/__tests__/unit/demo.unit.test.js:25:29)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+    <testcase classname="Demo Flow Protection Import Flow (3s limit) validates video format requirements" name="Demo Flow Protection Import Flow (3s limit) validates video format requirements" time="0.001">
+    </testcase>
+    <testcase classname="Demo Flow Protection Import Flow (3s limit) provides clear format error message" name="Demo Flow Protection Import Flow (3s limit) provides clear format error message" time="0">
+    </testcase>
+    <testcase classname="Demo Flow Protection Preview Flow (3s limit) loads video preview within 3s" name="Demo Flow Protection Preview Flow (3s limit) loads video preview within 3s" time="0">
+    </testcase>
+    <testcase classname="Demo Flow Protection Preview Flow (3s limit) starts playback within 3s" name="Demo Flow Protection Preview Flow (3s limit) starts playback within 3s" time="0.002">
+    </testcase>
+    <testcase classname="Demo Flow Protection Preview Flow (3s limit) loads grid thumbnail within 1s" name="Demo Flow Protection Preview Flow (3s limit) loads grid thumbnail within 1s" time="0">
+    </testcase>
+    <testcase classname="Demo Flow Protection Error Recovery (1s limit) handles format error within 1s" name="Demo Flow Protection Error Recovery (1s limit) handles format error within 1s" time="0.002">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;error&quot;
+Received: &quot;success&quot;
+    at Object.toBe (/home/jon/git/tiktoken/app/__tests__/unit/demo.unit.test.js:99:29)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+    <testcase classname="Demo Flow Protection Error Recovery (1s limit) handles size error within 1s" name="Demo Flow Protection Error Recovery (1s limit) handles size error within 1s" time="0">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;error&quot;
+Received: &quot;success&quot;
+    at Object.toBe (/home/jon/git/tiktoken/app/__tests__/unit/demo.unit.test.js:110:29)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+    <testcase classname="Demo Flow Protection Error Recovery (1s limit) provides retry functionality" name="Demo Flow Protection Error Recovery (1s limit) provides retry functionality" time="0">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;error&quot;
+Received: &quot;success&quot;
+    at Object.toBe (/home/jon/git/tiktoken/app/__tests__/unit/demo.unit.test.js:123:31)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+    <testcase classname="Demo Flow Protection Critical Integration completes import to preview flow" name="Demo Flow Protection Critical Integration completes import to preview flow" time="0">
+      <failure>TypeError: Cannot read properties of undefined (reading &apos;id&apos;)
+    at Object.id (/home/jon/git/tiktoken/app/__tests__/unit/demo.unit.test.js:138:63)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+    <testcase classname="Demo Flow Protection Critical Integration completes grid to player navigation" name="Demo Flow Protection Critical Integration completes grid to player navigation" time="0">
+    </testcase>
+    <testcase classname="Demo Flow Protection Critical Integration preserves critical video state" name="Demo Flow Protection Critical Integration preserves critical video state" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="VideoUploader" errors="0" failures="7" skipped="0" timestamp="2025-02-07T23:15:32" time="0.095" tests="14">
+    <testcase classname="VideoUploader metadata validation accepts valid metadata" name="VideoUploader metadata validation accepts valid metadata" time="0.001">
+    </testcase>
+    <testcase classname="VideoUploader metadata validation rejects invalid dimensions" name="VideoUploader metadata validation rejects invalid dimensions" time="0.007">
+    </testcase>
+    <testcase classname="VideoUploader metadata validation rejects invalid FPS" name="VideoUploader metadata validation rejects invalid FPS" time="0.001">
+    </testcase>
+    <testcase classname="VideoUploader metadata validation rejects too long duration" name="VideoUploader metadata validation rejects too long duration" time="0">
+    </testcase>
+    <testcase classname="VideoUploader metadata validation rejects missing width" name="VideoUploader metadata validation rejects missing width" time="0.008">
+      <failure>Error: expect(received).toThrow(expected)
+
+Expected substring: &quot;Video dimensions are required&quot;
+Received message:   &quot;Required metadata fields are missing&quot;
+
+      68 |
+      69 |   static missingMetadata(missing) {
+    &gt; 70 |     return new VideoUploadError(
+         |            ^
+      71 |       ErrorCodes.MISSING_METADATA,
+      72 |       &apos;Required metadata fields are missing&apos;,
+      73 |       { missingFields: missing }
+
+      at Function.missingMetadata (src/services/errors.js:70:12)
+      at VideoUploader.missingMetadata [as validateMetadata] (src/services/videoUploader.js:50:30)
+      at validateMetadata (__tests__/unit/videoUploader.unit.test.js:65:18)
+      at Object.&lt;anonymous&gt; (node_modules/expect/build/toThrowMatchers.js:74:11)
+      at Object.throwingMatcher [as toThrow] (node_modules/expect/build/index.js:320:21)
+      at Object.toThrow (__tests__/unit/videoUploader.unit.test.js:66:10)
+    at Object.toThrow (/home/jon/git/tiktoken/app/__tests__/unit/videoUploader.unit.test.js:66:10)
+    at Promise.then.completed (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="VideoUploader metadata validation rejects missing height" name="VideoUploader metadata validation rejects missing height" time="0.004">
+      <failure>Error: expect(received).toThrow(expected)
+
+Expected substring: &quot;Video dimensions are required&quot;
+Received message:   &quot;Required metadata fields are missing&quot;
+
+      68 |
+      69 |   static missingMetadata(missing) {
+    &gt; 70 |     return new VideoUploadError(
+         |            ^
+      71 |       ErrorCodes.MISSING_METADATA,
+      72 |       &apos;Required metadata fields are missing&apos;,
+      73 |       { missingFields: missing }
+
+      at Function.missingMetadata (src/services/errors.js:70:12)
+      at VideoUploader.missingMetadata [as validateMetadata] (src/services/videoUploader.js:50:30)
+      at validateMetadata (__tests__/unit/videoUploader.unit.test.js:76:18)
+      at Object.&lt;anonymous&gt; (node_modules/expect/build/toThrowMatchers.js:74:11)
+      at Object.throwingMatcher [as toThrow] (node_modules/expect/build/index.js:320:21)
+      at Object.toThrow (__tests__/unit/videoUploader.unit.test.js:77:10)
+    at Object.toThrow (/home/jon/git/tiktoken/app/__tests__/unit/videoUploader.unit.test.js:77:10)
+    at Promise.then.completed (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="VideoUploader metadata validation rejects missing fps" name="VideoUploader metadata validation rejects missing fps" time="0.001">
+      <failure>Error: expect(received).toThrow(expected)
+
+Expected substring: &quot;Video FPS is required&quot;
+Received message:   &quot;Required metadata fields are missing&quot;
+
+      68 |
+      69 |   static missingMetadata(missing) {
+    &gt; 70 |     return new VideoUploadError(
+         |            ^
+      71 |       ErrorCodes.MISSING_METADATA,
+      72 |       &apos;Required metadata fields are missing&apos;,
+      73 |       { missingFields: missing }
+
+      at Function.missingMetadata (src/services/errors.js:70:12)
+      at VideoUploader.missingMetadata [as validateMetadata] (src/services/videoUploader.js:50:30)
+      at validateMetadata (__tests__/unit/videoUploader.unit.test.js:87:18)
+      at Object.&lt;anonymous&gt; (node_modules/expect/build/toThrowMatchers.js:74:11)
+      at Object.throwingMatcher [as toThrow] (node_modules/expect/build/index.js:320:21)
+      at Object.toThrow (__tests__/unit/videoUploader.unit.test.js:88:10)
+    at Object.toThrow (/home/jon/git/tiktoken/app/__tests__/unit/videoUploader.unit.test.js:88:10)
+    at Promise.then.completed (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="VideoUploader metadata validation rejects missing duration" name="VideoUploader metadata validation rejects missing duration" time="0.002">
+      <failure>Error: expect(received).toThrow(expected)
+
+Expected substring: &quot;Video duration is required&quot;
+Received message:   &quot;Required metadata fields are missing&quot;
+
+      68 |
+      69 |   static missingMetadata(missing) {
+    &gt; 70 |     return new VideoUploadError(
+         |            ^
+      71 |       ErrorCodes.MISSING_METADATA,
+      72 |       &apos;Required metadata fields are missing&apos;,
+      73 |       { missingFields: missing }
+
+      at Function.missingMetadata (src/services/errors.js:70:12)
+      at VideoUploader.missingMetadata [as validateMetadata] (src/services/videoUploader.js:50:30)
+      at validateMetadata (__tests__/unit/videoUploader.unit.test.js:98:18)
+      at Object.&lt;anonymous&gt; (node_modules/expect/build/toThrowMatchers.js:74:11)
+      at Object.throwingMatcher [as toThrow] (node_modules/expect/build/index.js:320:21)
+      at Object.toThrow (__tests__/unit/videoUploader.unit.test.js:99:10)
+    at Object.toThrow (/home/jon/git/tiktoken/app/__tests__/unit/videoUploader.unit.test.js:99:10)
+    at Promise.then.completed (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="VideoUploader file validation accepts valid MP4 file" name="VideoUploader file validation accepts valid MP4 file" time="0">
+      <failure>ReferenceError: File is not defined
+    at Object.&lt;anonymous&gt; (/home/jon/git/tiktoken/app/__tests__/unit/videoUploader.unit.test.js:105:20)
+    at Promise.then.completed (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="VideoUploader file validation rejects non-MP4 file" name="VideoUploader file validation rejects non-MP4 file" time="0">
+      <failure>ReferenceError: File is not defined
+    at Object.&lt;anonymous&gt; (/home/jon/git/tiktoken/app/__tests__/unit/videoUploader.unit.test.js:112:20)
+    at Promise.then.completed (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="VideoUploader file validation rejects oversized file" name="VideoUploader file validation rejects oversized file" time="0">
+      <failure>ReferenceError: File is not defined
+    at Object.&lt;anonymous&gt; (/home/jon/git/tiktoken/app/__tests__/unit/videoUploader.unit.test.js:120:20)
+    at Promise.then.completed (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/jon/git/tiktoken/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/jon/git/tiktoken/app/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="VideoUploader metadata transformation transforms metadata to storage format" name="VideoUploader metadata transformation transforms metadata to storage format" time="0.001">
+    </testcase>
+    <testcase classname="VideoUploader metadata transformation validates metadata before transformation" name="VideoUploader metadata transformation validates metadata before transformation" time="0">
+    </testcase>
+    <testcase classname="VideoUploader metadata transformation maintains type safety in transformation" name="VideoUploader metadata transformation maintains type safety in transformation" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="Video Service Performance Tests" errors="0" failures="4" skipped="0" timestamp="2025-02-07T23:15:33" time="0.07" tests="5">
+    <testcase classname="Video Service Performance Tests completes validation within 1 second" name="Video Service Performance Tests completes validation within 1 second" time="0.002">
+    </testcase>
+    <testcase classname="Video Service Performance Tests completes import flow within 3 seconds" name="Video Service Performance Tests completes import flow within 3 seconds" time="0.002">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;success&quot;
+Received: undefined
+    at Object.toBe (/home/jon/git/tiktoken/app/__tests__/unit/video.unit.test.js:50:27)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+    <testcase classname="Video Service Performance Tests recovers from errors within 1 second" name="Video Service Performance Tests recovers from errors within 1 second" time="0.002">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;error&quot;
+Received: &quot;success&quot;
+    at Object.toBe (/home/jon/git/tiktoken/app/__tests__/unit/video.unit.test.js:65:27)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+    <testcase classname="Video Service Performance Tests handles rapid sequential imports" name="Video Service Performance Tests handles rapid sequential imports" time="0">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;success&quot;
+Received: undefined
+    at toBe (/home/jon/git/tiktoken/app/__tests__/unit/video.unit.test.js:79:29)
+    at Array.forEach (&lt;anonymous&gt;)
+    at Object.forEach (/home/jon/git/tiktoken/app/__tests__/unit/video.unit.test.js:78:13)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+    <testcase classname="Video Service Performance Tests maintains performance under memory pressure" name="Video Service Performance Tests maintains performance under memory pressure" time="0.004">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;success&quot;
+Received: undefined
+    at Object.toBe (/home/jon/git/tiktoken/app/__tests__/unit/video.unit.test.js:92:27)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Demo Timing Requirements" errors="0" failures="2" skipped="0" timestamp="2025-02-07T23:15:33" time="0.063" tests="3">
+    <testcase classname="Demo Timing Requirements Video import completes within 3 seconds" name="Demo Timing Requirements Video import completes within 3 seconds" time="0.002">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;success&quot;
+Received: undefined
+    at Object.toBe (/home/jon/git/tiktoken/app/__tests__/unit/timing.unit.test.js:27:27)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+    <testcase classname="Demo Timing Requirements Video preview loads within 3 seconds" name="Demo Timing Requirements Video preview loads within 3 seconds" time="0.001">
+    </testcase>
+    <testcase classname="Demo Timing Requirements Error recovery completes within 1 second" name="Demo Timing Requirements Error recovery completes within 1 second" time="0.001">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: true
+Received: false
+    at Object.toBe (/home/jon/git/tiktoken/app/__tests__/unit/timing.unit.test.js:47:32)
+    at Generator.next (&lt;anonymous&gt;)
+    at asyncGeneratorStep (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+    at _next (/home/jon/git/tiktoken/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="OpenShot Integration" errors="0" failures="0" skipped="0" timestamp="2025-02-07T23:15:33" time="1.081" tests="9">
+    <testcase classname="OpenShot Integration Import Story (3s) should complete import flow within 3s" name="OpenShot Integration Import Story (3s) should complete import flow within 3s" time="0.002">
+    </testcase>
+    <testcase classname="OpenShot Integration Import Story (3s) should handle import errors within 1s" name="OpenShot Integration Import Story (3s) should handle import errors within 1s" time="0">
+    </testcase>
+    <testcase classname="OpenShot Integration Preview Story (3s) should complete preview flow within 3s" name="OpenShot Integration Preview Story (3s) should complete preview flow within 3s" time="0.021">
+    </testcase>
+    <testcase classname="OpenShot Integration Preview Story (3s) should validate format within 500ms" name="OpenShot Integration Preview Story (3s) should validate format within 500ms" time="0">
+    </testcase>
+    <testcase classname="OpenShot Integration Recovery Story (1s) should handle format errors within 1s" name="OpenShot Integration Recovery Story (1s) should handle format errors within 1s" time="0.001">
+    </testcase>
+    <testcase classname="OpenShot Integration Recovery Story (1s) should handle retry flow within 3s" name="OpenShot Integration Recovery Story (1s) should handle retry flow within 3s" time="1.001">
+    </testcase>
+    <testcase classname="OpenShot Integration Recovery Story (1s) should transition states within 250ms" name="OpenShot Integration Recovery Story (1s) should transition states within 250ms" time="0.001">
+    </testcase>
+    <testcase classname="OpenShot Integration Critical Paths should validate portrait format" name="OpenShot Integration Critical Paths should validate portrait format" time="0">
+    </testcase>
+    <testcase classname="OpenShot Integration Critical Paths should provide clear error recovery" name="OpenShot Integration Critical Paths should provide clear error recovery" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="Core Demo Flow" errors="0" failures="0" skipped="0" timestamp="2025-02-07T23:15:34" time="0.06" tests="15">
+    <testcase classname="Core Demo Flow 1. Import Flow (3s) selects and imports valid nature video within 3s" name="Core Demo Flow 1. Import Flow (3s) selects and imports valid nature video within 3s" time="0.002">
+    </testcase>
+    <testcase classname="Core Demo Flow 1. Import Flow (3s) validates MP4 format requirement" name="Core Demo Flow 1. Import Flow (3s) validates MP4 format requirement" time="0">
+    </testcase>
+    <testcase classname="Core Demo Flow 1. Import Flow (3s) validates 100MB size limit" name="Core Demo Flow 1. Import Flow (3s) validates 100MB size limit" time="0">
+    </testcase>
+    <testcase classname="Core Demo Flow 1. Import Flow (3s) validates 9:16 portrait requirement" name="Core Demo Flow 1. Import Flow (3s) validates 9:16 portrait requirement" time="0">
+    </testcase>
+    <testcase classname="Core Demo Flow 2. Player Flow (3s) displays video in portrait mode within 3s" name="Core Demo Flow 2. Player Flow (3s) displays video in portrait mode within 3s" time="0.001">
+    </testcase>
+    <testcase classname="Core Demo Flow 2. Player Flow (3s) starts playback within 3s" name="Core Demo Flow 2. Player Flow (3s) starts playback within 3s" time="0">
+    </testcase>
+    <testcase classname="Core Demo Flow 2. Player Flow (3s) loads grid thumbnail within 1s" name="Core Demo Flow 2. Player Flow (3s) loads grid thumbnail within 1s" time="0.001">
+    </testcase>
+    <testcase classname="Core Demo Flow 2. Player Flow (3s) navigates between grid and player within 250ms" name="Core Demo Flow 2. Player Flow (3s) navigates between grid and player within 250ms" time="0">
+    </testcase>
+    <testcase classname="Core Demo Flow 3. Error Flows (1s) shows clear message for wrong format" name="Core Demo Flow 3. Error Flows (1s) shows clear message for wrong format" time="0">
+    </testcase>
+    <testcase classname="Core Demo Flow 3. Error Flows (1s) shows clear message for size limit" name="Core Demo Flow 3. Error Flows (1s) shows clear message for size limit" time="0">
+    </testcase>
+    <testcase classname="Core Demo Flow 3. Error Flows (1s) shows clear message for portrait requirement" name="Core Demo Flow 3. Error Flows (1s) shows clear message for portrait requirement" time="0.001">
+    </testcase>
+    <testcase classname="Core Demo Flow 3. Error Flows (1s) provides basic retry functionality" name="Core Demo Flow 3. Error Flows (1s) provides basic retry functionality" time="0">
+    </testcase>
+    <testcase classname="Core Demo Flow 4. Critical Integration completes grid to player navigation flow" name="Core Demo Flow 4. Critical Integration completes grid to player navigation flow" time="0.001">
+    </testcase>
+    <testcase classname="Core Demo Flow 4. Critical Integration completes import to preview flow" name="Core Demo Flow 4. Critical Integration completes import to preview flow" time="0">
+    </testcase>
+    <testcase classname="Core Demo Flow 4. Critical Integration preserves basic video state" name="Core Demo Flow 4. Critical Integration preserves basic video state" time="0.001">
+    </testcase>
+  </testsuite>
+</testsuites>

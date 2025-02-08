@@ -60,3 +60,9 @@ app/env/.env*
 # Android build artifacts
 .gradle/
 .cxx/
+
+# Build artifacts
+.cxx/
+*.o
+compile_commands.json
+

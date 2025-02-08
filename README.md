@@ -1,195 +1,97 @@
-# TikToken Video Processing System
+This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
-A high-performance video processing system for 9:16 portrait videos with real-time validation and status tracking.
+# Getting Started
 
-## Features
+> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
 
-- ⚡ Fast video upload and processing
-- 📱 9:16 aspect ratio validation
-- 🔄 Real-time status updates
-- 📊 Performance monitoring
-- 🛠️ Error handling with recovery
+## Step 1: Start Metro
 
-## Quick Start
+First, you will need to run **Metro**, the JavaScript build tool for React Native.
 
-1. Install Android Studio and create a Pixel7Pro AVD
-2. Run the app:
-   ```bash
-   make start
-   ```
+To start the Metro dev server, run the following command from the root of your React Native project:
 
-That's it! The command will:
-- Check and install dependencies
-- Set up the environment
-- Start the emulator
-- Launch the app
+```sh
+# Using npm
+npm start
 
-## Available Commands
-
-```bash
-make check    # Check environment and dependencies
-make install  # Install project dependencies
-make setup    # Set up environment
-make start    # Start the app (emulator + metro + app)
-make stop     # Stop all services
-make clean    # Clean up everything
+# OR using Yarn
+yarn start
 ```
 
-## Troubleshooting
+## Step 2: Build and run your app
 
-If you see any errors, try these steps:
+With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
 
-1. Clean and restart:
-   ```bash
-   make clean
-   make start
-   ```
+### Android
 
-2. Check environment:
-   ```bash
-   make check
-   ```
+```sh
+# Using npm
+npm run android
 
-3. Verify Android Studio setup:
-   - Open Android Studio
-   - Tools -> Device Manager
-   - Create Pixel7Pro AVD if missing
-
-## System Requirements
-
-- Java 11 (OpenJDK)
-- Android Studio
-- Node.js & Yarn
-- Linux/macOS
-
-The `make check` command will help install missing dependencies.
-
-## API Endpoints
-
-### Upload Video
-```http
-POST /upload
-Content-Type: multipart/form-data
-
-Response:
-{
-  "id": "video_id",
-  "url": "video_url",
-  "specs": {
-    "width": 720,
-    "height": 1280,
-    "fps": 30,
-    "duration": 30
-  }
-}
+# OR using Yarn
+yarn android
 ```
 
-### Check Status
-```http
-GET /videos/{video_id}/status
+### iOS
 
-Response:
-{
-  "id": "video_id",
-  "state": "completed",
-  "progress": 100
-}
+For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+
+The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+
+```sh
+bundle install
 ```
 
-### Get Metadata
-```http
-GET /videos/{video_id}/metadata
+Then, and every time you update your native dependencies, run:
 
-Response:
-{
-  "id": "video_id",
-  "filename": "video.mp4",
-  "url": "video_url",
-  "specs": {...},
-  "storage_info": {...}
-}
+```sh
+bundle exec pod install
 ```
 
-### System Health
-```http
-GET /health
+For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
 
-Response:
-{
-  "status": "ok",
-  "dependencies": {
-    "ffmpeg": {"status": "ok", "version": "..."},
-    "magic": {"status": "ok"}
-  },
-  "storage": {"status": "ok"}
-}
+```sh
+# Using npm
+npm run ios
+
+# OR using Yarn
+yarn ios
 ```
 
-## Performance Targets
+If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
 
-- Upload Time: < 3 seconds
-- API Latency: < 100ms
-- Memory Usage: < 500MB
-- Concurrent Uploads: 10+
-- Status Polling: 50+ clients
+This is one way to run your app — you can also build it directly from Android Studio or Xcode.
 
-## Video Requirements
+## Step 3: Modify your app
 
-- Resolution: 720x1280 (9:16)
-- Frame Rate: 29.97-30 fps
-- Format: H.264/HEVC
-- Color Space: BT.709
-- Max Duration: 60 seconds
-- Max Size: 6MB
+Now that you have successfully run the app, let's make changes!
 
-## Error Handling
+Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
 
-The system provides clear error messages and recovery suggestions:
+When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
 
-```json
-{
-  "error": "Invalid resolution: 1920x1080",
-  "suggestions": [
-    "Video must be exactly 720x1280",
-    "Use a video editor to resize",
-    "Most phones can record in this resolution natively"
-  ]
-}
-```
+- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
+- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
 
-## Development
+## Congratulations! :tada:
 
-### Running Tests
-```bash
-# Run all tests
-pytest
+You've successfully run and modified your React Native App. :partying_face:
 
-# Run specific test categories
-pytest tests/test_integration.py
-pytest tests/test_performance.py
-pytest tests/test_demo.py
-```
+### Now what?
 
-### Performance Testing
-```bash
-# Test upload throughput
-pytest tests/test_performance.py::test_upload_throughput
+- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
+- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
 
-# Test system stability
-pytest tests/test_demo.py::test_system_stability_flow
-```
+# Troubleshooting
 
-## Monitoring
+If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
 
-The system provides real-time monitoring through the health endpoint:
-- Component status
-- Performance metrics
-- Resource usage
-- System stability
+# Learn More
 
-## Known Limitations
+To learn more about React Native, take a look at the following resources:
 
-- Local storage only (no cloud)
-- Single-node processing
-- No authentication
-- Basic error recovery 
+- [React Native Website](https://reactnative.dev) - learn more about React Native.
+- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
+- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
+- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
+- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.

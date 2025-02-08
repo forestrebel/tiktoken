@@ -1,57 +1,61 @@
+/**
+ * Sample React Native App
+ * https://github.com/facebook/react-native
+ *
+ * @format
+ */
+
+import 'react-native-gesture-handler';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import HomeScreen from './app/src/screens/HomeScreen';
-import RecordScreen from './app/src/screens/RecordScreen';
-import ViewScreen from './app/src/screens/ViewScreen';
-import ProfileScreen from './app/src/screens/ProfileScreen';
-import SignInScreen from './app/src/screens/SignInScreen';
+import { SafeAreaView, StatusBar, useColorScheme } from 'react-native';
+import { Colors } from 'react-native/Libraries/NewAppScreen';
+import ViewScreen from './src/screens/ViewScreen';
+import HomeScreen from './src/screens/HomeScreen';
 
 const Stack = createStackNavigator();
 
-const App = () => {
+function App() {
+  const isDarkMode = useColorScheme() === 'dark';
+  const backgroundStyle = {
+    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+    flex: 1,
+  };
+
   return (
     <NavigationContainer>
-      <Stack.Navigator 
-        initialRouteName="Home"
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#F5F5F5',
-          },
-          headerTintColor: '#007AFF',
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
-        }}
-      >
-        <Stack.Screen 
-          name="Home" 
-          component={HomeScreen}
-          options={{ headerShown: false }}
+      <SafeAreaView style={backgroundStyle}>
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor={backgroundStyle.backgroundColor}
         />
-        <Stack.Screen 
-          name="Record" 
-          component={RecordScreen}
-          options={{ title: 'Record Video' }}
-        />
-        <Stack.Screen 
-          name="View" 
-          component={ViewScreen}
-          options={{ title: 'View Video' }}
-        />
-        <Stack.Screen 
-          name="Profile" 
-          component={ProfileScreen}
-          options={{ title: 'My Profile' }}
-        />
-        <Stack.Screen 
-          name="SignIn" 
-          component={SignInScreen}
-          options={{ headerShown: false }}
-        />
-      </Stack.Navigator>
+        <Stack.Navigator
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+            },
+            headerTintColor: isDarkMode ? Colors.lighter : Colors.darker,
+          }}
+        >
+          <Stack.Screen
+            name="Home"
+            component={HomeScreen}
+            options={{
+              title: 'Nature Collection',
+            }}
+          />
+          <Stack.Screen
+            name="View"
+            component={ViewScreen}
+            options={{
+              title: 'Preview',
+            }}
+          />
+        </Stack.Navigator>
+      </SafeAreaView>
     </NavigationContainer>
   );
-};
+}
 
-export default App; 
+export default App;
