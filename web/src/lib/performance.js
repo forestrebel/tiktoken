@@ -10,6 +10,36 @@ export const PERFORMANCE_THRESHOLDS = {
   MAX_MEMORY_DELTA: 50 // MB
 };
 
+// Performance tracking module
+const PERFORMANCE_STORE_KEY = 'video_performance_metrics'
+
+// Initialize performance observer
+let performanceObserver
+if (typeof window !== 'undefined') {
+  performanceObserver = new PerformanceObserver((list) => {
+    const entries = list.getEntries()
+    entries.forEach(entry => {
+      storeMetric(entry.name, entry.startTime, entry.duration)
+    })
+  })
+  
+  performanceObserver.observe({ 
+    entryTypes: ['resource', 'paint', 'largest-contentful-paint', 'layout-shift'] 
+  })
+}
+
+// Store performance metric
+const storeMetric = (name, startTime, duration) => {
+  try {
+    const metrics = JSON.parse(localStorage.getItem(PERFORMANCE_STORE_KEY) || '{}')
+    metrics[name] = metrics[name] || []
+    metrics[name].push({ startTime, duration, timestamp: Date.now() })
+    localStorage.setItem(PERFORMANCE_STORE_KEY, JSON.stringify(metrics))
+  } catch (error) {
+    console.warn('Failed to store metric:', error)
+  }
+}
+
 /**
  * Measures FPS over a time period
  * @param {number} duration - Duration to measure in ms
@@ -154,4 +184,124 @@ export const validatePerformance = (metrics) => {
     latencyUnder100ms: metrics.latency <= PERFORMANCE_THRESHOLDS.MAX_TOUCH_LATENCY,
     noMemoryLeaks: Math.abs(metrics.memoryDelta) <= PERFORMANCE_THRESHOLDS.MAX_MEMORY_DELTA
   };
-}; 
+};
+
+// Get FPS measurement
+export const measureFPS = () => {
+  let frames = 0
+  let lastTime = performance.now()
+  let rafId
+
+  const measure = () => {
+    frames++
+    const now = performance.now()
+    
+    if (now >= lastTime + 1000) {
+      const fps = Math.round((frames * 1000) / (now - lastTime))
+      storeMetric('fps', now, fps)
+      frames = 0
+      lastTime = now
+    }
+    
+    rafId = requestAnimationFrame(measure)
+  }
+
+  measure()
+  return () => cancelAnimationFrame(rafId)
+}
+
+// Measure memory usage
+export const measureMemory = async () => {
+  if (!performance.memory) return null
+  
+  const { totalJSHeapSize, usedJSHeapSize } = performance.memory
+  const usage = {
+    total: Math.round(totalJSHeapSize / 1024 / 1024),
+    used: Math.round(usedJSHeapSize / 1024 / 1024)
+  }
+  
+  storeMetric('memory', performance.now(), usage)
+  return usage
+}
+
+// Measure battery impact
+export const measureBattery = async () => {
+  if (!navigator.getBattery) return null
+  
+  const battery = await navigator.getBattery()
+  const impact = {
+    level: battery.level,
+    charging: battery.charging,
+    dischargingTime: battery.dischargingTime
+  }
+  
+  storeMetric('battery', performance.now(), impact)
+  return impact
+}
+
+// Get all performance metrics
+export const getPerformanceReport = () => {
+  try {
+    return JSON.parse(localStorage.getItem(PERFORMANCE_STORE_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+// Clear performance metrics
+export const clearPerformanceMetrics = () => {
+  localStorage.removeItem(PERFORMANCE_STORE_KEY)
+}
+
+// Track video playback performance
+export const trackVideoPlayback = (videoElement) => {
+  if (!videoElement) return
+
+  const metrics = {
+    bufferingEvents: 0,
+    totalBufferingTime: 0,
+    playbackStartTime: null,
+    lastBufferingStart: null
+  }
+
+  const handlers = {
+    play: () => {
+      if (!metrics.playbackStartTime) {
+        metrics.playbackStartTime = performance.now()
+      }
+    },
+    
+    waiting: () => {
+      metrics.bufferingEvents++
+      metrics.lastBufferingStart = performance.now()
+    },
+    
+    playing: () => {
+      if (metrics.lastBufferingStart) {
+        metrics.totalBufferingTime += performance.now() - metrics.lastBufferingStart
+        metrics.lastBufferingStart = null
+      }
+    },
+    
+    ended: () => {
+      const playbackDuration = performance.now() - metrics.playbackStartTime
+      storeMetric('video_playback', metrics.playbackStartTime, {
+        duration: playbackDuration,
+        bufferingEvents: metrics.bufferingEvents,
+        totalBufferingTime: metrics.totalBufferingTime
+      })
+    }
+  }
+
+  // Attach event listeners
+  Object.entries(handlers).forEach(([event, handler]) => {
+    videoElement.addEventListener(event, handler)
+  })
+
+  // Return cleanup function
+  return () => {
+    Object.entries(handlers).forEach(([event, handler]) => {
+      videoElement.removeEventListener(event, handler)
+    })
+  }
+} 

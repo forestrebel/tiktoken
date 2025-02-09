@@ -1,116 +1,97 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useInView } from 'react-intersection-observer'
+import VideoPlayer from './VideoPlayer'
 import { supabase } from '@/lib/supabaseClient'
-import Link from 'next/link'
 
-const PAGE_SIZE = 10
+const VIDEOS_PER_PAGE = 9
+const LOAD_THRESHOLD = 0.5
 
 export default function VideoGrid() {
   const [videos, setVideos] = useState([])
-  const [page, setPage] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [hasMore, setHasMore] = useState(true)
-  const { ref, inView } = useInView()
+  const [error, setError] = useState(null)
+  const pageRef = useRef(0)
+  
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: LOAD_THRESHOLD,
+    triggerOnce: false
+  })
 
   const loadVideos = async () => {
-    if (loading || !hasMore) return
-    
     try {
       setLoading(true)
-      setError(null)
+      const from = pageRef.current * VIDEOS_PER_PAGE
+      const to = from + VIDEOS_PER_PAGE - 1
 
-      const from = page * PAGE_SIZE
-      const to = from + PAGE_SIZE - 1
-
-      const { data: newVideos, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from('videos')
         .select('*')
         .order('created_at', { ascending: false })
         .range(from, to)
 
-      if (fetchError) throw fetchError
-      
-      if (!newVideos || newVideos.length < PAGE_SIZE) {
-        setHasMore(false)
-      }
-      
-      // Get video URLs
-      const videosWithUrls = await Promise.all(
-        newVideos.map(async (video) => {
-          const { data: { publicUrl } } = supabase.storage
-            .from('videos')
-            .getPublicUrl(video.file_path)
-          return { ...video, url: publicUrl }
-        })
-      )
-      
-      setVideos(prev => [...prev, ...videosWithUrls])
-      setPage(prev => prev + 1)
+      if (error) throw error
+
+      setVideos(prev => [...prev, ...data])
+      setHasMore(data.length === VIDEOS_PER_PAGE)
+      pageRef.current += 1
     } catch (err) {
-      console.error('Error loading videos:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load videos')
+      console.error('Failed to load videos:', err)
+      setError('Failed to load videos')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (inView) {
+    loadVideos()
+  }, [])
+
+  useEffect(() => {
+    if (inView && hasMore && !loading) {
       loadVideos()
     }
-  }, [inView])
+  }, [inView, hasMore, loading])
 
   if (error) {
     return (
       <div className="p-4 text-center text-red-500">
         {error}
+        <button 
+          onClick={() => {
+            setError(null)
+            loadVideos()
+          }}
+          className="ml-2 underline"
+        >
+          Retry
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="p-4">
-      {/* Grid Layout */}
-      <div className="grid grid-cols-2 gap-4">
-        {videos.map(video => (
-          <Link
-            key={video.id}
-            href={`/watch/${video.id}`}
-            className="aspect-[9/16] relative rounded-lg overflow-hidden bg-gray-800"
-          >
-            {/* Video Thumbnail */}
-            <video
-              src={video.url}
-              className="absolute inset-0 w-full h-full object-cover"
-              preload="metadata"
-            />
-            
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
-            
-            {/* Video Info */}
-            <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
-              <h3 className="text-sm font-medium truncate">
-                {video.title}
-              </h3>
-            </div>
-          </Link>
-        ))}
-
-        {/* Loading Placeholders */}
-        {loading && Array.from({ length: 2 }).map((_, i) => (
-          <div 
-            key={`placeholder-${i}`}
-            className="aspect-[9/16] bg-gray-800 rounded-lg animate-pulse"
-          />
-        ))}
-      </div>
-
-      {/* Infinite Scroll Trigger */}
-      <div ref={ref} className="h-20" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+      {videos.map(video => (
+        <div 
+          key={video.id}
+          className="aspect-[9/16] bg-black rounded-lg overflow-hidden"
+        >
+          <VideoPlayer url={video.url} />
+        </div>
+      ))}
+      
+      {hasMore && (
+        <div ref={loadMoreRef} className="col-span-full py-4 text-center">
+          {loading ? (
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 mx-auto" />
+          ) : (
+            <span className="text-gray-500">Loading more videos...</span>
+          )}
+        </div>
+      )}
     </div>
   )
 } 

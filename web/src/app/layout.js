@@ -1,9 +1,6 @@
-import { Inter } from 'next/font/google'
 import './globals.css'
 import Layout from '@/components/Layout'
 import ErrorDisplay from '@/components/ErrorDisplay'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'TikToken - Nature Content Platform',
@@ -37,7 +34,7 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-black text-white min-h-screen`}>
+      <body className="font-sans bg-black text-white min-h-screen">
         <main className="flex flex-col min-h-screen">
           <Layout>
             <ErrorDisplay />
