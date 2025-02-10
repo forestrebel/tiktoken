@@ -37,6 +37,27 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+
+    sourceSets {
+        main {
+            assets.srcDirs = ['src/main/assets', '../../src/assets']
+        }
+    }
+
+    // Add video assets copy task
+    tasks.whenTaskAdded { task ->
+        if (task.name.startsWith('merge') && task.name.endsWith('Assets')) {
+            task.dependsOn(copyVideoAssets)
+        }
+    }
+}
+
+// Video assets copy task
+task copyVideoAssets(type: Copy) {
+    from('../../src/assets/demo') {
+        include '*.mp4'
+    }
+    into 'src/main/assets/videos'
 }
 
 dependencies {
