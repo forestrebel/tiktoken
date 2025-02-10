@@ -14,6 +14,7 @@ export default function VideoGrid() {
   const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState(null)
   const pageRef = useRef(0)
+  const loadedIds = useRef(new Set())
   
   const { ref: loadMoreRef, inView } = useInView({
     threshold: LOAD_THRESHOLD,
@@ -34,8 +35,21 @@ export default function VideoGrid() {
 
       if (error) throw error
 
-      setVideos(prev => [...prev, ...data])
-      setHasMore(data.length === VIDEOS_PER_PAGE)
+      // Filter out duplicates and get public URLs
+      const newVideos = await Promise.all(
+        data
+          .filter(video => !loadedIds.current.has(video.id))
+          .map(async (video) => {
+            loadedIds.current.add(video.id)
+            const { data: { publicUrl } } = supabase.storage
+              .from('videos')
+              .getPublicUrl(video.file_path)
+            return { ...video, url: publicUrl }
+          })
+      )
+
+      setVideos(prev => [...prev, ...newVideos])
+      setHasMore(data.length === VIDEOS_PER_PAGE && newVideos.length > 0)
       pageRef.current += 1
     } catch (err) {
       console.error('Failed to load videos:', err)
@@ -46,7 +60,18 @@ export default function VideoGrid() {
   }
 
   useEffect(() => {
+    // Reset state when component mounts
+    setVideos([])
+    loadedIds.current.clear()
+    pageRef.current = 0
     loadVideos()
+
+    // Cleanup function
+    return () => {
+      setVideos([])
+      loadedIds.current.clear()
+      pageRef.current = 0
+    }
   }, [])
 
   useEffect(() => {
@@ -62,6 +87,9 @@ export default function VideoGrid() {
         <button 
           onClick={() => {
             setError(null)
+            setVideos([])
+            loadedIds.current.clear()
+            pageRef.current = 0
             loadVideos()
           }}
           className="ml-2 underline"
@@ -72,14 +100,26 @@ export default function VideoGrid() {
     )
   }
 
+  if (!loading && videos.length === 0) {
+    return (
+      <div className="p-4 text-center text-gray-500">
+        No videos found. Upload your first video!
+      </div>
+    )
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
       {videos.map(video => (
         <div 
           key={video.id}
-          className="aspect-[9/16] bg-black rounded-lg overflow-hidden"
+          className="aspect-[9/16] bg-black rounded-lg overflow-hidden shadow-lg"
         >
-          <VideoPlayer url={video.url} />
+          <VideoPlayer 
+            key={`player-${video.id}`}
+            url={video.url} 
+            poster={video.thumbnail_url}
+          />
         </div>
       ))}
       

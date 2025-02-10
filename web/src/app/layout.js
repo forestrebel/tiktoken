@@ -11,6 +11,9 @@ export const metadata = {
     statusBarStyle: 'black-translucent',
     title: 'TikToken',
   },
+  other: {
+    'mobile-web-app-capable': 'yes'
+  },
   applicationName: 'TikToken',
   formatDetection: {
     telephone: false,

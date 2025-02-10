@@ -1,5 +1,4 @@
-import { FFmpeg } from '@ffmpeg/ffmpeg'
-import { fetchFile, toBlobURL } from '@ffmpeg/util'
+import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg'
 import { VideoErrorHandler, ErrorTypes } from './errorHandler'
 
 // Supported video formats
@@ -36,20 +35,18 @@ export const VIDEO_CONSTANTS = {
  */
 class VideoProcessor {
   constructor(options = {}) {
-    // Only initialize FFmpeg in browser environment
     if (typeof window !== 'undefined') {
-      this.ffmpeg = new FFmpeg()
+      this.ffmpeg = createFFmpeg({
+        log: true,
+        mainName: 'main',
+        corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+        wasmPath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.wasm'
+      })
     }
     this.loaded = false
     
     // Initialize error handler
-    this.errorHandler = new VideoErrorHandler({
-      maxRetries: options.maxRetries || 3,
-      retryDelay: options.retryDelay || 1000,
-      onError: options.onError,
-      onRetry: options.onRetry,
-      onFallback: options.onFallback
-    })
+    this.errorHandler = new VideoErrorHandler(options)
   }
 
   /**
@@ -61,39 +58,44 @@ class VideoProcessor {
   async getVideoMetadata(file) {
     try {
       if (!file || !(file instanceof File)) {
-        throw new Error(`${VideoError.INVALID_INPUT}: Invalid video file`);
+        throw new Error(`${VideoError.INVALID_INPUT}: Invalid video file`)
       }
 
-      await this.load();
-      const inputName = 'metadata_input.mp4';
-      
-      await this.ffmpeg.writeFile(inputName, await fetchFile(file));
-      
-      // Execute FFmpeg command to get metadata
-      await this.ffmpeg.exec([
-        '-i', inputName,
-        '-v', 'quiet',
-        '-print_format', 'json',
-        '-show_format',
-        '-show_streams',
-        'metadata.json'
-      ]);
+      await this.load()
 
-      // Read metadata output
-      const metadataRaw = await this.ffmpeg.readFile('metadata.json');
-      const metadata = JSON.parse(new TextDecoder().decode(metadataRaw));
+      // Use unique file names to avoid conflicts
+      const timestamp = Date.now()
+      const inputName = `input_${timestamp}.mp4`
+      const metadataName = `metadata_${timestamp}.json`
 
-      // Clean up
-      await this.ffmpeg.deleteFile(inputName);
-      await this.ffmpeg.deleteFile('metadata.json');
+      try {
+        // Write input file
+        const data = await fetchFile(file)
+        await this.ffmpeg.FS('writeFile', inputName, data)
 
-      return metadata;
+        // Extract metadata
+        await this.ffmpeg.run(
+          '-i', inputName,
+          '-v', 'quiet',
+          '-print_format', 'json',
+          '-show_format',
+          '-show_streams',
+          metadataName
+        )
+
+        // Read metadata
+        const metadataRaw = await this.ffmpeg.FS('readFile', metadataName)
+        const metadata = JSON.parse(new TextDecoder().decode(metadataRaw))
+
+        return metadata
+      } finally {
+        // Clean up files
+        await this.ffmpeg.FS('unlink', inputName).catch(() => {})
+        await this.ffmpeg.FS('unlink', metadataName).catch(() => {})
+      }
     } catch (error) {
-      console.error('Metadata extraction failed:', error);
-      if (error instanceof SyntaxError) {
-        throw new Error(`${VideoError.METADATA_ERROR}: Invalid video metadata`);
-      }
-      throw new Error(`${VideoError.METADATA_ERROR}: Failed to extract video metadata`);
+      console.error('Metadata extraction failed:', error)
+      throw new Error(`${VideoError.METADATA_ERROR}: Failed to extract video metadata`)
     }
   }
 
@@ -178,12 +180,22 @@ class VideoProcessor {
     if (this.loaded || typeof window === 'undefined') return
 
     try {
-      // Load FFmpeg with CORS headers
-      await this.ffmpeg.load({
-        coreURL: await toBlobURL('/ffmpeg/ffmpeg-core.js', 'text/javascript'),
-        wasmURL: await toBlobURL('/ffmpeg/ffmpeg-core.wasm', 'application/wasm'),
-        workerURL: await toBlobURL('/ffmpeg/ffmpeg-worker.js', 'text/javascript')
-      })
+      await this.ffmpeg.load()
+      
+      // Test file system
+      try {
+        const testData = new Uint8Array([1, 2, 3])
+        await this.ffmpeg.FS('writeFile', 'test.bin', testData)
+        const readData = await this.ffmpeg.FS('readFile', 'test.bin')
+        await this.ffmpeg.FS('unlink', 'test.bin')
+
+        if (!readData || readData.length !== testData.length) {
+          throw new Error('File system verification failed')
+        }
+      } catch (fsError) {
+        console.error('File system test failed:', fsError)
+        throw new Error('File system initialization failed')
+      }
 
       this.loaded = true
     } catch (error) {
@@ -217,7 +229,7 @@ class VideoProcessor {
         const outputName = 'output.mp4';
 
         // Write input file to memory
-        await this.ffmpeg.writeFile(inputName, await fetchFile(file));
+        await this.ffmpeg.FS('writeFile', inputName, await fetchFile(file));
 
         // Set up progress handling
         if (options.onProgress) {
@@ -233,7 +245,7 @@ class VideoProcessor {
         // Adjust quality if needed
         const crf = retryOptions.reduceQuality ? '28' : '23';
 
-        await this.ffmpeg.exec([
+        await this.ffmpeg.run(
           '-i', inputName,
           '-c:v', 'libx264',
           '-preset', 'medium',
@@ -244,15 +256,15 @@ class VideoProcessor {
           '-vf', `scale=min(${maxWidth}\\,iw):min(${maxHeight}\\,ih):force_original_aspect_ratio=decrease`,
           '-y',
           outputName
-        ]);
+        );
 
         // Read the output file
-        const data = await this.ffmpeg.readFile(outputName);
+        const data = await this.ffmpeg.FS('readFile', outputName);
         const blob = new Blob([data], { type: 'video/mp4' });
         
         // Clean up
-        await this.ffmpeg.deleteFile(inputName);
-        await this.ffmpeg.deleteFile(outputName);
+        await this.ffmpeg.FS('unlink', inputName);
+        await this.ffmpeg.FS('unlink', outputName);
 
         return new File([blob], file.name.replace(/\.[^/.]+$/, '') + '_compressed.mp4', {
           type: 'video/mp4'
@@ -287,9 +299,9 @@ class VideoProcessor {
         const inputName = 'input.mp4';
         const outputName = 'thumbnail.jpg';
 
-        await this.ffmpeg.writeFile(inputName, await fetchFile(file));
+        await this.ffmpeg.FS('writeFile', inputName, await fetchFile(file));
 
-        await this.ffmpeg.exec([
+        await this.ffmpeg.run(
           '-i', inputName,
           '-ss', time.toString(),
           '-frames:v', '1',
@@ -298,13 +310,13 @@ class VideoProcessor {
           '-f', 'image2',
           '-y',
           outputName
-        ]);
+        );
 
-        const data = await this.ffmpeg.readFile(outputName);
+        const data = await this.ffmpeg.FS('readFile', outputName);
         const blob = new Blob([data], { type: 'image/jpeg' });
 
-        await this.ffmpeg.deleteFile(inputName);
-        await this.ffmpeg.deleteFile(outputName);
+        await this.ffmpeg.FS('unlink', inputName);
+        await this.ffmpeg.FS('unlink', outputName);
 
         return blob;
       } catch (error) {

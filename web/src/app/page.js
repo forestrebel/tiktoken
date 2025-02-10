@@ -1,5 +1,9 @@
-import VideoGrid from '@/components/VideoGrid'
+import VideoUpload from '@/components/VideoUpload'
 
 export default function Home() {
-  return <VideoGrid />
+  return (
+    <div className="container mx-auto max-w-lg">
+      <VideoUpload />
+    </div>
+  )
 }
