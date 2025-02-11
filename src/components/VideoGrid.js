@@ -1,4 +1,5 @@
 'use client'
+import React, { useCallback, memo } from 'react'
 import { useEffect } from 'react'
 import { useStore } from '@/lib/store'
 import { useInView } from 'react-intersection-observer'
@@ -6,75 +7,235 @@ import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import VideoSkeleton from './VideoSkeleton'
 import { FadeIn } from './Transitions'
+import {
+  View,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  Text,
+  StyleSheet,
+  Dimensions,
+  ActivityIndicator,
+  Animated
+} from 'react-native'
+import Icon from 'react-native-vector-icons/MaterialIcons'
+import { FlashList } from '@shopify/flash-list'
+import { formatDuration, formatDate } from '../utils/format'
 
-export default function VideoGrid() {
-  const { videos, hasMore, page, addVideos, setError, loading } = useStore()
-  const { ref, inView } = useInView()
+const { width } = Dimensions.get('window')
+const COLUMN_COUNT = 2
+const SPACING = 10
+const ITEM_WIDTH = (width - (SPACING * (COLUMN_COUNT + 1))) / COLUMN_COUNT
+const ITEM_HEIGHT = ITEM_WIDTH * 1.5
 
-  const loadVideos = async () => {
-    try {
-      const { data: newVideos, error } = await supabase
-        .from('videos')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(page * 10, (page + 1) * 10 - 1)
-
-      if (error) throw error
-
-      // Get video URLs
-      const videosWithUrls = await Promise.all(
-        newVideos.map(async (video) => {
-          const { data: { publicUrl } } = supabase.storage
-            .from('videos')
-            .getPublicUrl(video.file_path)
-          return { ...video, url: publicUrl }
-        })
-      )
-
-      addVideos(videosWithUrls)
-    } catch (err) {
-      setError(err.message)
-    }
-  }
+const VideoGridItem = memo(({ item, onPress }) => {
+  const hasValidThumbnail = item.thumbnail && !item.thumbnailError
+  const opacity = new Animated.Value(0)
 
   useEffect(() => {
-    if (inView && hasMore) {
-      loadVideos()
-    }
-  }, [inView])
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start()
+  }, [])
 
   return (
-    <div className="p-4">
-      <div className="grid grid-cols-2 gap-4">
-        {videos.map(video => (
-          <FadeIn key={video.id}>
-            <Link
-              href={`/watch/${video.id}`}
-              className="aspect-[9/16] relative rounded-lg overflow-hidden bg-gray-800 tap-highlight"
-            >
-              <video
-                src={video.url}
-                className="absolute inset-0 w-full h-full object-cover"
-                preload="metadata"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
-              <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
-                <p className="text-sm truncate">{video.title}</p>
-              </div>
-            </Link>
-          </FadeIn>
-        ))}
-        {loading && (
-          <>
-            <VideoSkeleton />
-            <VideoSkeleton />
-          </>
-        )}
-      </div>
+    <Animated.View style={{ opacity }}>
+      <TouchableOpacity
+        style={[styles.gridItem, styles.gridItemShadow]}
+        onPress={() => onPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.thumbnailContainer}>
+          {hasValidThumbnail ? (
+            <Image
+              source={{ uri: item.thumbnail }}
+              style={styles.thumbnail}
+              resizeMode="cover"
+              loading="lazy"
+              defaultSource={require('../assets/placeholder.png')}
+            />
+          ) : (
+            <View style={styles.placeholderThumbnail}>
+              <Icon name="videocam" size={40} color="#666" />
+            </View>
+          )}
+          {item.duration > 0 && (
+            <View style={styles.duration}>
+              <Text style={styles.durationText}>
+                {formatDuration(item.duration)}
+              </Text>
+            </View>
+          )}
+          {item.processing && (
+            <View style={styles.processingOverlay}>
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={styles.processingText}>Processing...</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.itemInfo}>
+          <Text style={styles.filename} numberOfLines={1}>
+            {item.title || item.filename}
+          </Text>
+          <Text style={styles.date}>
+            {formatDate(item.created_at)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  )
+})
 
-      {hasMore && (
-        <div ref={ref} className="h-20" />
-      )}
-    </div>
+const EmptyState = memo(() => (
+  <Animated.View 
+    style={styles.emptyState}
+    entering={Animated.FadeIn.duration(300)}
+  >
+    <Icon name="videocam-off" size={48} color="#666" />
+    <Text style={styles.emptyText}>No videos yet</Text>
+    <Text style={styles.emptySubtext}>
+      Videos you upload will appear here
+    </Text>
+  </Animated.View>
+))
+
+const VideoGrid = ({ videos, onVideoPress, refreshing, onRefresh, ListHeaderComponent }) => {
+  const renderItem = useCallback(({ item }) => (
+    <VideoGridItem
+      item={item}
+      onPress={onVideoPress}
+    />
+  ), [onVideoPress])
+
+  const keyExtractor = useCallback((item) => item.id, [])
+
+  return (
+    <FlashList
+      data={videos}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      numColumns={COLUMN_COUNT}
+      estimatedItemSize={ITEM_HEIGHT}
+      contentContainerStyle={styles.grid}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      ListEmptyComponent={EmptyState}
+      ListHeaderComponent={ListHeaderComponent}
+      showsVerticalScrollIndicator={false}
+      removeClippedSubviews={true}
+      initialNumToRender={6}
+      maxToRenderPerBatch={4}
+      windowSize={5}
+      overrideItemLayout={(layout, item) => {
+        layout.size = ITEM_HEIGHT
+      }}
+    />
   )
 }
+
+const styles = StyleSheet.create({
+  grid: {
+    padding: SPACING,
+  },
+  gridItem: {
+    width: ITEM_WIDTH,
+    marginBottom: SPACING,
+    marginHorizontal: SPACING / 2,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  gridItemShadow: {
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  thumbnailContainer: {
+    width: '100%',
+    height: ITEM_WIDTH,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#f0f0f0',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#f0f0f0',
+  },
+  placeholderThumbnail: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  duration: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  durationText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  processingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  processingText: {
+    color: '#fff',
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  itemInfo: {
+    padding: 12,
+  },
+  filename: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  date: {
+    fontSize: 12,
+    color: '#666',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    opacity: 0.8,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#333',
+  },
+  emptySubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
+})
+
+export default memo(VideoGrid)

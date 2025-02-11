@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "702ad05de9bc9de99a4807c8dde1686f31e0041d7b5f6f6b74861195a52110f5"
+            "sha256": "62ef34a946ff93c65ede2802d3d497b6408111562419cec4177fde69466612f5"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -15,6 +15,15 @@
             }
         ]
     },
-    "default": {},
+    "default": {
+        "pyclip": {
+            "hashes": [
+                "sha256:57602047a4ceab709bdcd42f3dde6449a3349b95c16154cfdce27376a2072491",
+                "sha256:a7b7ea2cfad2dd61e86a529af588d006070d3eb0bd32981afaee5215f4604fec"
+            ],
+            "index": "pypi",
+            "version": "==0.7.0"
+        }
+    },
     "develop": {}
 }

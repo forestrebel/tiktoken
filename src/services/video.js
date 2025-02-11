@@ -1,16 +1,23 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import RNFS from 'react-native-fs';
-import { Platform } from 'react-native';
-import { FFmpegKit, FFprobeKit, FFmpegKitConfig } from 'ffmpeg-kit-react-native';
-import { getStorage, ref, uploadBytes, uploadBytesResumable } from 'firebase/storage';
-import { auth } from '../config/firebase';
-import { OpenShotService } from './openshot';
-import { testVideos } from '../../test/helpers/video';
+const AsyncStorage = require('@react-native-async-storage/async-storage');
+const RNFS = require('react-native-fs');
+const { Platform } = require('react-native');
+const { FFmpegKit, FFprobeKit, FFmpegKitConfig } = require('ffmpeg-kit-react-native');
+const { getStorage, ref, uploadBytes, uploadBytesResumable } = require('firebase/storage');
+const { auth } = require('../config/firebase');
+const OpenShotService = require('./openshot');
+const { testVideos } = require('../../test/helpers/video');
+const DocumentPicker = require('react-native-document-picker');
+const { v4: uuidv4 } = require('uuid');
+const database = require('./database');
+const { db, storage } = require('./supabase');
+const MediaMetadataRetriever = require('react-native-media-metadata-retriever');
 
 const API_URL = process.env.API_URL || 'http://localhost:5000';
 const VIDEOS_KEY = '@videos';
-const VIDEO_DIR = `${RNFS.DocumentDirectoryPath}/videos`;
-const THUMBNAIL_DIR = `${RNFS.DocumentDirectoryPath}/thumbnails`;
+const APP_STORAGE_DIR = RNFS.ExternalStorageDirectoryPath;
+const VIDEO_DIR = `${APP_STORAGE_DIR}/TikToken/videos`;
+const CACHE_DIR = `${APP_STORAGE_DIR}/TikToken/cache`;
+const THUMBNAIL_DIR = `${APP_STORAGE_DIR}/TikToken/thumbnails`;
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const THUMBNAIL_SIZE = '320x180'; // 16:9 thumbnail size
 const STATUS_POLL_INTERVAL = 2000; // 2 seconds
@@ -18,16 +25,13 @@ const STATUS_POLL_INTERVAL = 2000; // 2 seconds
 // Constants for video validation
 const VIDEO_CONSTRAINTS = {
   maxSizeMB: 100,
-  minDurationSec: 1,
-  maxDurationSec: 300,
-  aspectRatio: {
-    width: 9,
-    height: 16,
-  },
+  formats: ['video/mp4'],
+  minDuration: 1,
+  maxDuration: 300,
   resolution: {
     width: 720,
-    height: 1280,
-  },
+    height: 1280
+  }
 };
 
 // Cache for validation results
@@ -47,14 +51,12 @@ const DEMO_VIDEOS = {
   },
 };
 
-const APP_CACHE_DIR = `${RNFS.CachesDirectoryPath}/AppVideos`;
-
 // Ensure cache directory exists
 const ensureCacheDir = async () => {
   try {
-    const exists = await RNFS.exists(APP_CACHE_DIR);
+    const exists = await RNFS.exists(CACHE_DIR);
     if (!exists) {
-      await RNFS.mkdir(APP_CACHE_DIR);
+      await RNFS.mkdir(CACHE_DIR);
     }
   } catch (error) {
     console.error('Failed to create cache directory:', error);
@@ -85,15 +87,26 @@ async function generateFileSignature(filePath) {
   }
 }
 
-/**
- * Video service for managing recordings and imports
- */
-export const videoService = {
+class VideoService {
+  static instance = null;
+
+  static getInstance() {
+    if (!VideoService.instance) {
+      VideoService.instance = new VideoService();
+    }
+    return VideoService.instance;
+  }
+
   /**
    * Initialize video storage and check system health
    */
   async init() {
     try {
+      // Create necessary directories
+      await RNFS.mkdir(VIDEO_DIR);
+      await RNFS.mkdir(CACHE_DIR);
+      await RNFS.mkdir(THUMBNAIL_DIR);
+      
       // Check system health first
       const health = await this.checkHealth();
       if (health.status !== 'ok') {
@@ -114,7 +127,7 @@ export const videoService = {
       console.error('Failed to initialize video service:', error);
       return { status: 'error', error };
     }
-  },
+  }
 
   /**
    * Check system health
@@ -152,7 +165,7 @@ export const videoService = {
         ],
       };
     }
-  },
+  }
 
   /**
    * Import video with progress tracking
@@ -187,7 +200,7 @@ export const videoService = {
       console.error('Import error:', error);
       throw new Error('Failed to import video: ' + error.message);
     }
-  },
+  }
 
   /**
    * Poll video processing status
@@ -234,7 +247,7 @@ export const videoService = {
     };
 
     poll();
-  },
+  }
 
   /**
    * Get video metadata
@@ -268,26 +281,14 @@ export const videoService = {
         ],
       };
     }
-  },
+  }
 
   /**
    * Get list of videos
    */
   async getVideos() {
-    try {
-      const videos = JSON.parse(await AsyncStorage.getItem(VIDEOS_KEY) || '[]');
-      return {
-        status: 'success',
-        data: process.env.NODE_ENV === 'test' ? testVideos : videos,
-      };
-    } catch (error) {
-      console.error('Failed to get videos:', error);
-      return {
-        status: 'error',
-        error: error.message,
-      };
-    }
-  },
+    return db.videos.getAll();
+  }
 
   /**
    * Reset video library
@@ -303,7 +304,7 @@ export const videoService = {
         error: error.message,
       };
     }
-  },
+  }
 
   /**
    * Generate thumbnail for video
@@ -364,42 +365,63 @@ export const videoService = {
         ],
       };
     }
-  },
+  }
 
   /**
    * Validate video
    * @param {string} uri Video URI
    * @returns {Promise<Object>} Validation result
    */
-  async validateVideo(uri) {
+  async validateVideo(file) {
     try {
-      const fileInfo = await RNFS.stat(uri);
-      const sizeMB = fileInfo.size / (1024 * 1024);
-
       // Check file size
+      const sizeMB = file.size / (1024 * 1024);
       if (sizeMB > VIDEO_CONSTRAINTS.maxSizeMB) {
-        throw new Error(`Video must be under ${VIDEO_CONSTRAINTS.maxSizeMB}MB`);
+        return {
+          isValid: false,
+          error: `Video must be under ${VIDEO_CONSTRAINTS.maxSizeMB}MB`
+        };
       }
 
-      // Mock FFprobe output for tests
+      // Check format
+      if (!VIDEO_CONSTRAINTS.formats.includes(file.type)) {
+        return {
+          isValid: false,
+          error: `Only ${VIDEO_CONSTRAINTS.formats.join(', ')} formats are supported`
+        };
+      }
+
+      // Get metadata using Android's MediaMetadataRetriever
+      const metadata = await MediaMetadataRetriever.getMetadata(file.fileCopyUri);
+      
+      // Validate duration
+      const duration = parseInt(metadata.duration) / 1000; // Convert to seconds
+      if (duration < VIDEO_CONSTRAINTS.minDuration || duration > VIDEO_CONSTRAINTS.maxDuration) {
+        return {
+          isValid: false,
+          error: `Video duration must be between ${VIDEO_CONSTRAINTS.minDuration} and ${VIDEO_CONSTRAINTS.maxDuration} seconds`
+        };
+      }
+
       return {
-        status: 'success',
-        data: {
-          type: 'video/mp4',
-          width: 720,
-          height: 1280,
-          duration: 60,
-          codec: 'h264',
-        },
+        isValid: true,
+        duration,
+        metadata: {
+          width: parseInt(metadata.width),
+          height: parseInt(metadata.height),
+          rotation: parseInt(metadata.rotation || '0'),
+          bitrate: parseInt(metadata.bitrate)
+        }
       };
+
     } catch (error) {
       console.error('Validation error:', error);
       return {
-        status: 'error',
-        error: error.message,
+        isValid: false,
+        error: 'Failed to validate video'
       };
     }
-  },
+  }
 
   /**
    * Get a single video
@@ -407,23 +429,8 @@ export const videoService = {
    * @returns {Promise<Object>}
    */
   async getVideo(id) {
-    try {
-      const videos = await this.getVideos();
-      if (videos.status === 'success') {
-        const video = videos.data.find(v => v.id === id);
-        if (!video) {
-          return {
-            status: 'error',
-            error: 'Video not found',
-          };
-        }
-        return { status: 'success', data: video };
-      }
-      return videos;
-    } catch (error) {
-      return { status: 'error', error: error.message };
-    }
-  },
+    return db.videos.get(id);
+  }
 
   /**
    * Delete a video
@@ -431,28 +438,21 @@ export const videoService = {
    * @returns {Promise<void>}
    */
   async deleteVideo(id) {
-    try {
-      const videos = await this.getVideos();
-      if (videos.status === 'success') {
-        const video = videos.data.find(v => v.id === id);
-
-        if (video) {
-          // Delete file
-          const path = `${VIDEO_DIR}/${video.filename}`;
-          await RNFS.unlink(path);
-
-          // Update list
-          const filtered = videos.data.filter(v => v.id !== id);
-          await AsyncStorage.setItem(VIDEOS_KEY, JSON.stringify(filtered));
-        }
-
-        return { status: 'success' };
+    const videos = await this.getVideos();
+    const video = videos.data.find(v => v.id === id);
+    
+    if (video) {
+      try {
+        await RNFS.unlink(video.path);
+        // TODO: Implement database deletion
+        return true;
+      } catch (error) {
+        console.error('Error deleting video file:', error);
+        return false;
       }
-      return videos;
-    } catch (error) {
-      return { status: 'error', error };
     }
-  },
+    return false;
+  }
 
   /**
    * Get video path for playback
@@ -461,7 +461,7 @@ export const videoService = {
    */
   getVideoPath(filename) {
     return `${VIDEO_DIR}/${filename}`;
-  },
+  }
 
   /**
    * Get thumbnail path
@@ -470,7 +470,7 @@ export const videoService = {
    */
   getThumbnailPath(filename) {
     return `${THUMBNAIL_DIR}/${filename}`;
-  },
+  }
 
   /**
    * Get a demo video
@@ -483,14 +483,14 @@ export const videoService = {
       return { status: 'error', error: 'Demo video not found' };
     }
     return { status: 'success', data: video };
-  },
+  }
 
   /**
    * Clean up old videos
    */
   async cleanup() {
     try {
-      const files = await RNFS.readDir(APP_CACHE_DIR);
+      const files = await RNFS.readDir(CACHE_DIR);
       const now = new Date();
 
       for (const file of files) {
@@ -504,11 +504,11 @@ export const videoService = {
     } catch (error) {
       console.warn('Cleanup error:', error);
     }
-  },
+  }
 
   async ensureCacheDirectory() {
     try {
-      const cacheDir = `${RNFS.CachesDirectoryPath}/Videos`;
+      const cacheDir = `${CACHE_DIR}/Videos`;
       const exists = await RNFS.exists(cacheDir);
       if (!exists) {
         await RNFS.mkdir(cacheDir);
@@ -518,7 +518,7 @@ export const videoService = {
       console.error('Failed to create cache directory:', error);
       throw new Error('Storage initialization failed');
     }
-  },
+  }
 
   async uploadVideo(uri, metadata, onProgress) {
     try {
@@ -609,7 +609,7 @@ export const videoService = {
       console.error('Upload error:', error);
       throw new Error('Failed to upload video: ' + error.message);
     }
-  },
+  }
 
   async cancelUpload() {
     if (currentUploadTask) {
@@ -621,7 +621,7 @@ export const videoService = {
         throw new Error('Failed to cancel upload');
       }
     }
-  },
+  }
 
   async getUploadProgress() {
     if (!currentUploadTask) {
@@ -629,7 +629,7 @@ export const videoService = {
     }
     const snapshot = await currentUploadTask.snapshot;
     return snapshot.bytesTransferred / snapshot.totalBytes;
-  },
+  }
 
   async cleanupCache() {
     try {
@@ -648,7 +648,7 @@ export const videoService = {
     } catch (error) {
       console.warn('Cleanup error:', error);
     }
-  },
+  }
 
   /**
    * Process video with OpenShot
@@ -699,7 +699,7 @@ export const videoService = {
       console.error('OpenShot processing error:', error);
       throw error;
     }
-  },
+  }
 
   /**
    * Create a video player instance
@@ -719,7 +719,7 @@ export const videoService = {
       console.error('Failed to create player:', error);
       throw error;
     }
-  },
+  }
 
   /**
    * Get video thumbnail
@@ -737,7 +737,7 @@ export const videoService = {
       console.error('Failed to get thumbnail:', error);
       throw error;
     }
-  },
+  }
 
   /**
    * Get video state
@@ -759,11 +759,66 @@ export const videoService = {
       console.error('Failed to get video state:', error);
       throw error;
     }
-  },
-};
+  }
+
+  async pickVideo() {
+    try {
+      const result = await DocumentPicker.pick({
+        type: [DocumentPicker.types.video],
+        copyTo: 'cachesDirectory',
+      });
+
+      const file = result[0];
+      if (!file) throw new Error('No file selected');
+
+      // Validate video
+      const validation = await this.validateVideo(file);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
+      }
+
+      // Upload to Supabase storage
+      const filename = `${Date.now()}-${file.name}`;
+      const { data: storageData } = await storage.upload(
+        file,
+        `videos/${filename}`,
+        (progress) => console.log('Upload progress:', progress)
+      );
+
+      // Save video metadata to database
+      const videoData = {
+        id: uuidv4(),
+        title: file.name,
+        file_path: storageData.path,
+        storage_path: `videos/${filename}`,
+        type: file.type,
+        size: file.size,
+        metadata: {
+          duration: validation.duration,
+          ...validation.metadata
+        }
+      };
+
+      await db.videos.save(videoData);
+      return videoData;
+
+    } catch (err) {
+      if (DocumentPicker.isCancel(err)) {
+        throw new Error('User cancelled the picker');
+      }
+      throw err;
+    }
+  }
+
+  getVideoUrl(path) {
+    return storage.getUrl(path);
+  }
+}
+
+module.exports = VideoService.getInstance();
 
 // Export constants for consistent validation
-export const VIDEO_CONSTANTS = {
+module.exports.VIDEO_CONSTANTS = {
   MAX_SIZE_MB: 100,
   VALID_FORMATS: ['mp4', 'mov', 'quicktime'],
   MAX_DURATION_SEC: 300,
