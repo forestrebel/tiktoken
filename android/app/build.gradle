@@ -1,4 +1,5 @@
 apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 /**
@@ -6,27 +7,15 @@ apply plugin: "com.facebook.react"
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
-    // Folders to check for source files
     root = file("../")
-    // Folders to check for JS files
     entryFile = file("../index.js")
-    // Whether to bundle JS and assets in debug mode
-    bundleInDebug = false
-    // Whether to bundle JS and assets in release mode
-    bundleInRelease = true
-    // Whether to bundle JS and assets in another build variant (if configured).
-    // See http://tools.android.com/tech-docs/new-build-system/user-guide#TOC-Build-Variants
-    // The configuration property can be in the following formats
-    //         'bundleIn${productFlavor}${buildType}'
-    //         'bundleIn${buildType}'
-    // bundleInFreeDebug = true
-    // bundleInPaidRelease = true
-    // bundleInBeta = true
 }
+
+def enableHermes = true
+def enableProguardInReleaseBuilds = true
 
 android {
     ndkVersion rootProject.ext.ndkVersion
-
     compileSdkVersion rootProject.ext.compileSdkVersion
 
     namespace "com.tiktoken"
@@ -52,29 +41,15 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
     sourceSets {
         main {
             assets.srcDirs = ['src/main/assets', '../../src/assets']
-        }
-    }
-
-    // Add video assets copy task
-    tasks.whenTaskAdded { task ->
-        if (task.name.startsWith('merge') && task.name.endsWith('Assets')) {
-            task.dependsOn(copyVideoAssets)
         }
     }
 }
@@ -87,17 +62,23 @@ task copyVideoAssets(type: Copy) {
     into 'src/main/assets/videos'
 }
 
+// Add video assets copy task
+android.applicationVariants.configureEach { variant ->
+    variant.mergeAssetsProvider.configure {
+        dependsOn copyVideoAssets
+    }
+}
+
 dependencies {
-    // The version of react-native is set by the React Native Gradle Plugin
-    implementation("com.facebook.react:react-android")
-    implementation("com.facebook.react:react-native:+")  // From node_modules
+    implementation("com.facebook.react:react-android:0.73.2")
+    implementation("com.facebook.react:hermes-android:0.73.2")
 
     debugImplementation("com.facebook.flipper:flipper:${FLIPPER_VERSION}")
     debugImplementation("com.facebook.flipper:flipper-network-plugin:${FLIPPER_VERSION}") {
         exclude group:'com.squareup.okhttp3', module:'okhttp'
     }
-
     debugImplementation("com.facebook.flipper:flipper-fresco-plugin:${FLIPPER_VERSION}")
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

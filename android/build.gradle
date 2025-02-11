@@ -8,8 +8,7 @@ buildscript {
         targetSdkVersion = 33
         ndkVersion = "23.1.7779620"
         kotlinVersion = "1.8.0"
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        javaVersion = JavaVersion.VERSION_17
     }
     repositories {
         google()
@@ -45,13 +44,11 @@ allprojects {
 }
 
 subprojects { project ->
-    afterEvaluate {
-        if (project.hasProperty("android")) {
-            android {
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_11
-                    targetCompatibility JavaVersion.VERSION_11
-                }
+    if (project.hasProperty("android")) {
+        android {
+            compileOptions {
+                sourceCompatibility javaVersion
+                targetCompatibility javaVersion
             }
         }
     }
