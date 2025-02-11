@@ -1,7 +1,6 @@
 'use client'
-import React, { useCallback, memo } from 'react'
-import { useEffect } from 'react'
-import { useStore } from '@/lib/store'
+import React, { useState, useEffect } from 'react'
+import { useCallback, memo } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
@@ -21,6 +20,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { FlashList } from '@shopify/flash-list'
 import { formatDuration, formatDate } from '../utils/format'
+import { api } from '../api'
 
 const { width } = Dimensions.get('window')
 const COLUMN_COUNT = 2
@@ -101,43 +101,130 @@ const EmptyState = memo(() => (
   </Animated.View>
 ))
 
-const VideoGrid = ({ videos, onVideoPress, refreshing, onRefresh, ListHeaderComponent }) => {
-  const renderItem = useCallback(({ item }) => (
-    <VideoGridItem
-      item={item}
-      onPress={onVideoPress}
-    />
-  ), [onVideoPress])
+const VideoGrid = ({ onVideoSelect }) => {
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const keyExtractor = useCallback((item) => item.id, [])
+  useEffect(() => {
+    loadVideos();
+  }, []);
+
+  const loadVideos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.getVideos();
+      setVideos(data);
+    } catch (err) {
+      setError('Failed to load videos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.error}>{error}</Text>
+        <TouchableOpacity style={styles.button} onPress={loadVideos}>
+          <Text style={styles.buttonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (videos.length === 0) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.message}>No videos yet</Text>
+      </View>
+    );
+  }
 
   return (
-    <FlashList
+    <FlatList
       data={videos}
-      renderItem={renderItem}
-      keyExtractor={keyExtractor}
-      numColumns={COLUMN_COUNT}
-      estimatedItemSize={ITEM_HEIGHT}
+      keyExtractor={(item) => item.id}
+      numColumns={2}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={styles.videoItem}
+          onPress={() => onVideoSelect?.(item)}
+        >
+          <View style={styles.videoPreview}>
+            <Text style={styles.videoName} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text style={styles.videoDate}>
+              {new Date(item.timestamp).toLocaleDateString()}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
       contentContainerStyle={styles.grid}
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      ListEmptyComponent={EmptyState}
-      ListHeaderComponent={ListHeaderComponent}
-      showsVerticalScrollIndicator={false}
-      removeClippedSubviews={true}
-      initialNumToRender={6}
-      maxToRenderPerBatch={4}
-      windowSize={5}
-      overrideItemLayout={(layout, item) => {
-        layout.size = ITEM_HEIGHT
-      }}
     />
-  )
+  );
 }
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   grid: {
-    padding: SPACING,
+    padding: 8,
+  },
+  videoItem: {
+    flex: 1,
+    margin: 8,
+  },
+  videoPreview: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 16,
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoName: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  videoDate: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  message: {
+    fontSize: 16,
+    color: '#666',
+  },
+  error: {
+    fontSize: 16,
+    color: '#FF3B30',
+    marginBottom: 16,
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   gridItem: {
     width: ITEM_WIDTH,

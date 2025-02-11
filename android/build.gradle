@@ -7,7 +7,6 @@ buildscript {
         compileSdkVersion = 33
         targetSdkVersion = 33
         ndkVersion = "23.1.7779620"
-        kotlinVersion = "1.8.0"
         javaVersion = JavaVersion.VERSION_17
     }
     repositories {
@@ -17,7 +16,6 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:7.4.2")
         classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
 
@@ -47,8 +45,8 @@ subprojects { project ->
     if (project.hasProperty("android")) {
         android {
             compileOptions {
-                sourceCompatibility javaVersion
-                targetCompatibility javaVersion
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
             }
         }
     }
